@@ -1,3 +1,6 @@
-export CLICKUP_TOKEN=""
+# shellcheck shell=bash
 
-export CLICKUP_LIST_ID=""
+export CLICKUP_TOKEN=""
+export CLICKUP_BASE_URL=""
+export CLICKUP_INBOX_ID=""
+export CLICKUP_INBOX_PATH=""

@@ -61,7 +61,9 @@ For each SSH-triggered workflow:
 If you call external APIs:
 
 - Log the **HTTP status code**
-- Log a **short error summary** (not the entire response body by default)
+- On success, log a **compact outcome** only (`created`, `opened`, `task_id=...`, etc.)
+- Do **not** log full success payloads/responses; API success bodies can be huge and contain sensitive metadata
+- On error, logging the short API error body is acceptable when useful, after making sure it contains no secrets
 - Optionally log a **correlation id** or extracted `id` fields on success
 
 ---
@@ -69,6 +71,7 @@ If you call external APIs:
 ## What NOT to log
 
 - Tokens / credentials (env vars like `*_TOKEN`, `*_KEY`, `Authorization:` headers)
+- Full success request/response bodies
 - Full request/response bodies if they can contain sensitive data
 - Anything the iPhone user wouldn’t want stored locally long-term
 
