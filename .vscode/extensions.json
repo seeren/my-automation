@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "emilast.logfilehighlighter",
+    "timonwong.shellcheck",
+    "mads-hartmann.bash-ide-vscode",
+    "foxundermoon.shell-format",
+    "vivaxy.vscode-conventional-commits"
+  ],
+  "unwantedRecommendations": []
+}

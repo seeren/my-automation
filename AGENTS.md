@@ -44,13 +44,6 @@ This repository is a personal automation layer to reduce cognitive load by turni
 - Keep logs consistent and redact sensitive data.
   - See `docs/logging.md`
 
-### Shortcuts documentation
-
-- Exported shortcuts live in `shortcuts/`.
-- All import/personalization instructions live in `docs/shortcuts.md`.
-- Keep shortcut-specific sections minimal:
-  - Only document what differs for that shortcut (everything else is generic).
-
 ## When to write an ADR
 
 Add a short decision record in `docs/decisions/` when a change affects:
@@ -64,4 +57,3 @@ Add a short decision record in `docs/decisions/` when a change affects:
 - Script added in the right folder
 - Required env vars added to `config/env.example.sh`
 - Logging added per `docs/logging.md`
-- If there is a shortcut: export stored in `shortcuts/` + a dedicated section in `docs/shortcuts.md`
