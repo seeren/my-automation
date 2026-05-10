@@ -100,6 +100,8 @@ Required variables:
 
 ## Future extensions (checklist)
 
+Prioritized by ROI: frequency, time saved, implementation effort, and risk.
+
 - [x] Create a quick ClickUp inbox task
 - [x] Open ClickUp inbox / today tasks
 - [ ] Open ClickUp roadmaps
