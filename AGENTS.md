@@ -27,12 +27,15 @@ This repository is a personal automation layer to reduce cognitive load by turni
 - Prefer a single script per action (example: `clickup/create_task.sh`).
 - Scripts should be non-interactive and fast.
 - Avoid duplicating heavy validation: the iPhone Shortcut is the validation/UI layer.
-  - Keep only minimal safety checks (required args/env present).
+  - Do not add environment variable presence checks in scripts; env vars are declared in `config/env.example.sh` and configured locally in `config/env.sh`.
+  - Keep scripts focused on executing the action and returning the standard response.
 
 ### Configuration
 
 - `config/env.example.sh` is the template (safe to commit).
 - `config/env.sh` is local-only (ignored by git) and contains real secrets.
+- Env values should be canonical and ready to use. Do not normalize or repair env values in scripts.
+  - Example: `CLICKUP_BASE_URL` has no trailing slash, `CLICKUP_INBOX_PATH` has no leading slash.
 - When adding a new env var:
   - Add it to `config/env.example.sh` (empty value)
   - Document where it’s used
@@ -42,6 +45,8 @@ This repository is a personal automation layer to reduce cognitive load by turni
 - Log files live in `logs/` and are local-only (ignored by git).
 - Prefer one file per workflow (example: `logs/clickup.log`).
 - Keep logs consistent and redact sensitive data.
+- On success, never log full API payloads/responses; log a compact status or extracted identifier only.
+- On error, short API error bodies are acceptable when useful, but never log secrets.
   - See `docs/logging.md`
 
 ## When to write an ADR

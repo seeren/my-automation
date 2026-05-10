@@ -10,7 +10,7 @@ The iPhone is the UI + validation layer. The Mac is the execution layer.
 
 - **One action = one intent**: one SSH trigger maps to one script/workflow.
 - **No over-validation**: the iPhone Shortcut already validated inputs.
-  - The script should still fail safely on missing args/env, but avoid duplicating full UI validation.
+  - Scripts assume local env/config is already correct and should not duplicate config checks.
 - **Stable output contract**: stdout is a machine interface for the iPhone.
 - **Secrets stay on the Mac**: scripts load secrets locally (env files) and never print them.
 - **Fast + deterministic**: scripts should be quick; avoid interactive prompts.
@@ -38,7 +38,9 @@ The iPhone is the UI + validation layer. The Mac is the execution layer.
 ### Environment variables
 
 - Load secrets via `source config/env.sh` (local only).
-- Prefer explicit names per integration: `CLICKUP_TOKEN`, `CLICKUP_LIST_ID`, etc.
+- Prefer explicit names per integration: `CLICKUP_TOKEN`, `CLICKUP_INBOX_ID`, etc.
+- Environment values must be canonical and ready to use. Scripts should not normalize or repair them.
+  - Example: base URLs have no trailing slash, paths have no leading slash.
 
 ---
 
@@ -103,7 +105,7 @@ Common suggestion:
   - `set -euo pipefail` is recommended for most workflows.
 - On error:
   - Emit the **standard JSON** error on stdout
-  - Log full context to `logs/<workflow>.log` (redacted)
+  - Log short, useful context to `logs/<workflow>.log` (redacted)
 
 ---
 
@@ -119,15 +121,13 @@ If not possible, ensure the iPhone Shortcut makes retries explicit.
 
 ---
 
-## Minimal validation (what to keep)
+## Validation boundary
 
-Even if the iPhone validated, scripts should still:
+The iPhone Shortcut is the validation/UI layer, and `config/env.example.sh` documents required local configuration.
 
-- Check required args exist (empty `$1` should become a clean `ERROR`)
-- Check required env vars exist (missing token → clean `ERROR`)
-- Avoid echoing raw payloads that might contain secrets
+Scripts should **not** add environment variable presence checks. They assume the local Mac is configured correctly via `config/env.sh`.
 
-Do **not** implement heavy validation logic that belongs to the UI (length limits, UI constraints, multi-step forms).
+Keep scripts focused on one action, avoid duplicating UI validation, and avoid echoing raw payloads that might contain secrets.
 
 ---
 

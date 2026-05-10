@@ -73,7 +73,9 @@ source config/env.sh
 Required variables:
 
 - `CLICKUP_TOKEN`
-- `CLICKUP_LIST_ID`
+- `CLICKUP_BASE_URL`
+- `CLICKUP_INBOX_ID`
+- `CLICKUP_INBOX_PATH`
 
 ---
 
@@ -98,14 +100,22 @@ Required variables:
 
 ## Future extensions (checklist)
 
-- [x] ClickUp tasks
-- [ ] Git workflows
-- [ ] Meeting creation
-- [ ] Task management helpers
-- [ ] Messaging automation
-- [ ] Calendar / reminders
-- [ ] Notes capture / inbox processing
-- [ ] “Daily review” routine (one-tap)
+Prioritized by ROI: frequency, time saved, implementation effort, and risk.
+
+- [x] Create a quick ClickUp inbox task
+- [x] Open ClickUp inbox / today tasks
+- [ ] Open ClickUp roadmaps
+- [ ] Open a specific ClickUp backlog
+- [ ] Start a Discord meeting and notify teammates on Rocket.Chat
+- [ ] Prepare a meeting workspace (Discord, ClickUp, browser, window layout)
+- [ ] Create a simple ClickUp bug ticket
+- [ ] Create a structured ClickUp ticket (list, type, taxonomy, description, assignment)
+- [ ] Create a ClickUp bug from a support ticket
+- [ ] Create multiple inbox tasks from a multi-line list
+- [ ] Schedule a Discord meeting
+- [ ] Send a reusable Rocket.Chat notification
+- [ ] Generate a meeting report from a transcription
+- [ ] Add generic macOS workspace actions (split windows, fullscreen, open context)
 
 ---
 
