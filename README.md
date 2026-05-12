@@ -104,7 +104,7 @@ Prioritized by ROI: frequency, time saved, implementation effort, and risk.
 
 - [x] Create a quick ClickUp inbox task
 - [x] Open ClickUp inbox / today tasks
-- [ ] Open ClickUp roadmaps
+- [x] Open ClickUp roadmaps
 - [ ] Open a specific ClickUp backlog
 - [ ] Start a Discord meeting and notify teammates on Rocket.Chat
 - [ ] Prepare a meeting workspace (Discord, ClickUp, browser, window layout)
