@@ -22,7 +22,7 @@ The iPhone is the UI + validation layer. The Mac is the execution layer.
 - Workflows grouped by integration:
   - `clickup/`, `git/`, `calendar/`, `messages/`, etc.
 - Logs:
-  - `logs/<workflow>.log` (see `docs/logging.md`)
+  - `vars/logs/<workflow>.log` (see `docs/logging.md`)
 - Config:
   - `config/env.sh` (ignored by git)
 
@@ -105,7 +105,7 @@ Common suggestion:
   - `set -euo pipefail` is recommended for most workflows.
 - On error:
   - Emit the **standard JSON** error on stdout
-  - Log short, useful context to `logs/<workflow>.log` (redacted)
+  - Log short, useful context to `vars/logs/<workflow>.log` (redacted)
 
 ---
 

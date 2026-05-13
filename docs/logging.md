@@ -15,13 +15,13 @@ This repo is triggered remotely (iPhone Shortcuts → SSH → macOS → shell sc
 
 ## Where logs live
 
-- Logs are written under `logs/`.
-- Log files are ignored by git (`logs/*.log`), so they stay local to the Mac.
+- Logs are written under `vars/logs/`.
+- Log files are ignored by git (`vars/logs/*.log`), so they stay local to the Mac.
 
 Recommended convention:
 
-- One file per workflow: `logs/<workflow>.log`
-  - Example: `logs/clickup.log`
+- One file per workflow: `vars/logs/<workflow>.log`
+  - Example: `vars/logs/clickup.log`
 
 ---
 
@@ -90,7 +90,7 @@ This repo has two outputs:
 
 - **stdout**: the response returned over SSH to the iPhone Shortcut
   - Must be **short, stable, machine-readable** (see `docs/conventions-shell.md`)
-- **file logs** (`logs/*.log`): deeper local trace for debugging
+- **file logs** (`vars/logs/*.log`): deeper local trace for debugging
 
 Rule of thumb:
 

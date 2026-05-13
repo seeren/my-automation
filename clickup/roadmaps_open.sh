@@ -5,7 +5,7 @@ source ~/Workspace/automation/config/env.sh
 
 ACTION="roadmaps_open"
 TIMESTAMP=$(date -Iseconds)
-LOG_FILE=~/Workspace/automation/logs/clickup.log
+LOG_FILE=~/Workspace/automation/vars/logs/clickup.log
 
 URL_PORTFOLIO="$CLICKUP_BASE_URL/$CLICKUP_PORTFOLIO_ROADMAP_PATH"
 URL_PI_ROADMAP="$CLICKUP_BASE_URL/$CLICKUP_PROGRAM_INCREMENT_ROADMAP_PATH"

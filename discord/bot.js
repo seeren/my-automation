@@ -11,9 +11,10 @@ const GUILD_ID = process.env.DISCORD_MEETING_GUILD_ID || "";
 const VOICE_CHANNEL_ID = process.env.DISCORD_MEETING_VOICE_CHANNEL_ID || "";
 const HOME_DIR = os.homedir();
 
-const RUNTIME_DIR = path.join(HOME_DIR, "Workspace/automation/discord/runtime");
-const COMMAND_FILE = path.join(RUNTIME_DIR, "command.json");
-const LOG_FILE = path.join(HOME_DIR, "Workspace/automation/logs/discord.log");
+const RUNTIME_DIR = path.join(HOME_DIR, "Workspace/automation/vars/runtime");
+const COMMAND_FILE = path.join(RUNTIME_DIR, "discord-command.json");
+const STATUS_FILE = path.join(RUNTIME_DIR, "discord-status.json");
+const LOG_FILE = path.join(HOME_DIR, "Workspace/automation/vars/logs/discord.log");
 
 function logBot(level, code, input, details) {
   const ts = new Date().toISOString();
@@ -35,6 +36,22 @@ function clearCommand() {
   if (fs.existsSync(COMMAND_FILE)) {
     fs.unlinkSync(COMMAND_FILE);
   }
+}
+
+function writeStatus(id, action, status, state, error) {
+  const payload = {
+    id,
+    action,
+    status,
+    state,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (error) {
+    payload.error = error;
+  }
+
+  fs.writeFileSync(STATUS_FILE, JSON.stringify(payload));
 }
 
 function requireConfig() {
@@ -94,15 +111,19 @@ async function main() {
     try {
       if (cmd.action === "start") {
         await startMeeting(client);
+        writeStatus(cmd.id, cmd.action, "success", "meeting_started");
         logBot("INFO", 0, "command", `cmd_id=${cmd.id}|state=meeting_started`);
       } else if (cmd.action === "stop") {
         stopMeeting();
+        writeStatus(cmd.id, cmd.action, "success", "meeting_stopped");
         logBot("INFO", 0, "command", `cmd_id=${cmd.id}|state=meeting_stopped`);
       } else {
+        writeStatus(cmd.id, cmd.action, "error", "error", "unknown_action");
         logBot("ERROR", 50, "command", `cmd_id=${cmd.id}|state=error|unknown_action`);
       }
     } catch (err) {
       const message = err && err.message ? err.message : "unknown_bot_error";
+      writeStatus(cmd.id, cmd.action, "error", "error", message);
       logBot("ERROR", 51, "command", `cmd_id=${cmd.id}|state=error|${message}`);
     } finally {
       clearCommand();

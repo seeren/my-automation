@@ -5,7 +5,7 @@ source ~/Workspace/automation/config/env.sh
 
 ACTION="backlog_open"
 TIMESTAMP=$(date -Iseconds)
-LOG_FILE=~/Workspace/automation/logs/clickup.log
+LOG_FILE=~/Workspace/automation/vars/logs/clickup.log
 
 PRODUCT="$1"
 PATH_VAR="CLICKUP_BACKLOG_${PRODUCT}_PATH"
