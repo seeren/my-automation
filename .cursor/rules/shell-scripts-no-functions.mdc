@@ -1,0 +1,11 @@
+---
+description: Keep shell scripts flat without shell functions
+alwaysApply: true
+---
+
+# Shell Script Style
+
+- Do not add shell function declarations in `.sh` files.
+- Prefer a flat, linear script flow with direct commands.
+- Accept small repetition for simple scripts instead of abstracting with functions.
+- In shell scripts, prefer `~` paths over `$HOME` paths.

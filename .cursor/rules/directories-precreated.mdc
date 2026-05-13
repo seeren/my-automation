@@ -1,0 +1,10 @@
+---
+description: Directories must be pre-created and versioned
+alwaysApply: true
+---
+
+# Runtime Directories
+
+- Do not add `mkdir`, `mkdir -p`, or directory creation logic in scripts.
+- Required folders must be pre-created in the repository.
+- Keep those folders tracked with a `.gitkeep` file when needed.

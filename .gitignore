@@ -1,2 +1,5 @@
 env.sh
-logs/*.log
+node_modules/
+vars/logs/*.log
+vars/pids/*.pid
+vars/runtime/*.json

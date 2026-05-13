@@ -42,8 +42,8 @@ This repository is a personal automation layer to reduce cognitive load by turni
 
 ### Logging
 
-- Log files live in `logs/` and are local-only (ignored by git).
-- Prefer one file per workflow (example: `logs/clickup.log`).
+- Log files live in `vars/logs/` and are local-only (ignored by git).
+- Prefer one file per workflow (example: `vars/logs/clickup.log`).
 - Keep logs consistent and redact sensitive data.
 - On success, never log full API payloads/responses; log a compact status or extracted identifier only.
 - On error, short API error bodies are acceptable when useful, but never log secrets.
