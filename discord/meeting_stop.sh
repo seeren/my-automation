@@ -7,8 +7,8 @@ ACTION="meeting_stop"
 TIMESTAMP=$(date -Iseconds)
 LOG_FILE=~/Workspace/automation/vars/logs/discord.log
 
-DISCORD_MEETING_STOP_SCRIPT=~/Workspace/automation/discord/bot_meeting_stop.sh
-DISCORD_BOT_ENTRYPOINT=~/Workspace/automation/discord/bot.js
+DISCORD_MEETING_STOP_SCRIPT=~/Workspace/automation/discord/meeting_stop_bot.sh
+DISCORD_BOT_ENTRYPOINT=~/Workspace/automation/discord/lib/bot.js
 PID_FILE=~/Workspace/automation/vars/pids/discord-bot.pid
 BOT_PIDS=$(ps -ax -o pid=,command= | awk -v entrypoint="$DISCORD_BOT_ENTRYPOINT" 'index($0, entrypoint) && $0 !~ /awk/ {print $1}')
 BOT_COUNT=$(printf "%s\n" "$BOT_PIDS" | awk 'NF {c++} END {print c+0}')
@@ -21,7 +21,7 @@ if [ "$BOT_COUNT" -eq 0 ]; then
   exit 0
 fi
 
-if [ -x "$DISCORD_MEETING_STOP_SCRIPT" ] && sh "$DISCORD_MEETING_STOP_SCRIPT"; then
+if [ -f "$DISCORD_MEETING_STOP_SCRIPT" ] && sh "$DISCORD_MEETING_STOP_SCRIPT"; then
   echo "$TIMESTAMP|INFO|$ACTION|0|meeting|stopped" >> "$LOG_FILE"
 else
   echo "$TIMESTAMP|ERROR|$ACTION|40|meeting|stop_failed" >> "$LOG_FILE"

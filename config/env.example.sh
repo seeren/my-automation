@@ -1,5 +1,6 @@
 # shellcheck shell=bash
 
+# clickup/
 export CLICKUP_TOKEN=""
 export CLICKUP_BASE_URL=""
 
@@ -26,7 +27,7 @@ export CLICKUP_BACKLOG_SHOP_ADMIN_PATH=""
 export CLICKUP_BACKLOG_AFTERSALES_PATH=""
 export CLICKUP_BACKLOG_POM_PATH=""
 
-# discord/bot.js
+# discord/
 export DISCORD_BOT_TOKEN=""
 export DISCORD_MEETING_GUILD_ID=""
 export DISCORD_MEETING_VOICE_CHANNEL_ID=""

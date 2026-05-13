@@ -3,9 +3,6 @@
   "private": true,
   "version": "1.0.0",
   "description": "Personal automation workflows",
-  "scripts": {
-    "discord:bot": "node discord/bot.js"
-  },
   "dependencies": {
     "@discordjs/voice": "^0.18.0",
     "discord.js": "^14.15.3"

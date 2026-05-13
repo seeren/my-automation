@@ -7,8 +7,8 @@ ACTION="meeting_start"
 TIMESTAMP=$(date -Iseconds)
 LOG_FILE=~/Workspace/automation/vars/logs/discord.log
 
-DISCORD_BOT_ENTRYPOINT=~/Workspace/automation/discord/bot.js
-DISCORD_MEETING_START_SCRIPT=~/Workspace/automation/discord/bot_meeting_start.sh
+DISCORD_BOT_ENTRYPOINT=~/Workspace/automation/discord/lib/bot.js
+DISCORD_MEETING_START_SCRIPT=~/Workspace/automation/discord/meeting_start_bot.sh
 PID_FILE=~/Workspace/automation/vars/pids/discord-bot.pid
 BOT_STDOUT_LOG=~/Workspace/automation/vars/logs/discord.log
 NODE_BIN=~/homebrew/bin/node
@@ -42,7 +42,7 @@ else
   fi
 fi
 
-if [ -x "$DISCORD_MEETING_START_SCRIPT" ] && sh "$DISCORD_MEETING_START_SCRIPT"; then
+if [ -f "$DISCORD_MEETING_START_SCRIPT" ] && sh "$DISCORD_MEETING_START_SCRIPT"; then
   echo "{\"status\":\"SUCCESS\",\"action\":\"$ACTION\",\"message\":\"Meeting started\"}"
   echo "$TIMESTAMP|INFO|$ACTION|0|meeting|started" >> "$LOG_FILE"
 else
