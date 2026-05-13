@@ -68,6 +68,7 @@ Before using Discord meeting scripts:
 - Node.js installed on the Mac execution unit
 - Project dependencies installed (`npm install` at repo root)
 - `vars/runtime/` directory present in the repo (tracked with `.gitkeep`)
+- `vars/logs/` and `vars/pids/` directories present in the repo (tracked with `.gitkeep`)
 
 ---
 
@@ -86,6 +87,28 @@ Required variables:
 - `CLICKUP_BASE_URL`
 - `CLICKUP_INBOX_ID`
 - `CLICKUP_INBOX_PATH`
+- `DISCORD_BOT_TOKEN`
+- `DISCORD_MEETING_GUILD_ID`
+- `DISCORD_MEETING_VOICE_CHANNEL_ID`
+
+---
+
+## Discord meeting workflows
+
+Current Discord entry points:
+
+- `discord/meeting_start.sh`:
+  - Starts the Discord bot if needed
+  - Sends a `start` command to the bot via `vars/runtime/discord-command.json`
+- `discord/meeting_stop.sh`:
+  - Sends a `stop` command to the bot
+  - Stops all matching bot processes and clears the PID file
+
+Runtime state is kept locally under `vars/`:
+
+- logs: `vars/logs/discord.log`
+- pid: `vars/pids/discord-bot.pid`
+- command/status: `vars/runtime/discord-command.json`, `vars/runtime/discord-status.json`
 
 ---
 
@@ -116,7 +139,8 @@ Prioritized by ROI: frequency, time saved, implementation effort, and risk.
 - [x] Open ClickUp inbox / today tasks
 - [x] Open ClickUp roadmaps
 - [x] Open a specific ClickUp backlog
-- [ ] Start a Discord meeting and notify teammates on Rocket.Chat
+- [x] Start/stop a Discord meeting bot session
+- [ ] Notify teammates on Rocket.Chat when meeting starts
 - [ ] Prepare a meeting workspace (Discord, ClickUp, browser, window layout)
 - [ ] Create a simple ClickUp bug ticket
 - [ ] Create a structured ClickUp ticket (list, type, taxonomy, description, assignment)
