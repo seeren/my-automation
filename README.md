@@ -61,6 +61,16 @@ So I combined:
 
 ---
 
+## Prerequisites
+
+Before using Discord meeting scripts:
+
+- Node.js installed on the Mac execution unit
+- Project dependencies installed (`npm install` at repo root)
+- `discord/runtime/` directory present in the repo (tracked with `.gitkeep`)
+
+---
+
 ## Configuration
 
 Copy and configure environment variables:
