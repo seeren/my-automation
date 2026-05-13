@@ -67,8 +67,13 @@ Before using Discord meeting scripts:
 
 - Node.js installed on the Mac execution unit
 - Project dependencies installed (`npm install` at repo root)
-- `vars/runtime/` directory present in the repo (tracked with `.gitkeep`)
-- `vars/logs/` and `vars/pids/` directories present in the repo (tracked with `.gitkeep`)
+
+---
+
+## iPhone <-> Mac setup (Shortcuts + SSH)
+
+- Enable iCloud sync for Shortcuts (iPhone settings).
+- On Mac, enable `System Settings -> General -> Sharing -> Remote Sessions`.
 
 ---
 
@@ -83,32 +88,25 @@ source config/env.sh
 
 Required variables:
 
-- `CLICKUP_TOKEN`
-- `CLICKUP_BASE_URL`
-- `CLICKUP_INBOX_ID`
-- `CLICKUP_INBOX_PATH`
-- `DISCORD_BOT_TOKEN`
-- `DISCORD_MEETING_GUILD_ID`
-- `DISCORD_MEETING_VOICE_CHANNEL_ID`
+- `CLICKUP_TOKEN`: ClickUp API token used by task creation scripts.
+- `CLICKUP_BASE_URL`: Base ClickUp URL (without trailing slash), e.g. `https://app.clickup.com`.
+- `CLICKUP_INBOX_ID`: ClickUp List ID used by `clickup/inbox_add.sh`.
+- `CLICKUP_INBOX_PATH`: ClickUp inbox path appended to `CLICKUP_BASE_URL` by `clickup/inbox_open.sh`.
+- `DISCORD_BOT_TOKEN`: Discord bot token from Discord Developer Portal.
+- `DISCORD_MEETING_GUILD_ID`: Discord server (guild) ID where the bot operates.
+- `DISCORD_MEETING_VOICE_CHANNEL_ID`: Voice channel ID used for meeting start/stop actions.
 
 ---
 
-## Discord meeting workflows
+## Discord bot setup
 
-Current Discord entry points:
-
-- `discord/meeting_start.sh`:
-  - Starts the Discord bot if needed
-  - Sends a `start` command to the bot via `vars/runtime/discord-command.json`
-- `discord/meeting_stop.sh`:
-  - Sends a `stop` command to the bot
-  - Stops all matching bot processes and clears the PID file
-
-Runtime state is kept locally under `vars/`:
-
-- logs: `vars/logs/discord.log`
-- pid: `vars/pids/discord-bot.pid`
-- command/status: `vars/runtime/discord-command.json`, `vars/runtime/discord-status.json`
+- Enable Developer Mode in Discord (`User Settings -> Advanced`).
+- In [Discord Developer Portal](https://discord.com/developers/applications), create an application and a bot.
+- Copy bot token to `DISCORD_BOT_TOKEN` in `config/env.sh`.
+- Invite the bot with scope `bot` and permissions `View Channels`, `Connect` (optional `Speak`).
+- Copy server ID and voice channel ID into:
+  - `DISCORD_MEETING_GUILD_ID`
+  - `DISCORD_MEETING_VOICE_CHANNEL_ID`
 
 ---
 
