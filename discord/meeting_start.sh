@@ -18,7 +18,7 @@ BOT_COUNT=$(printf "%s\n" "$BOT_PIDS" | awk 'NF {c++} END {print c+0}')
 
 if [ "$BOT_COUNT" -gt 1 ]; then
   echo "$TIMESTAMP|ERROR|$ACTION|32|discord_bot|duplicate_processes_detected" >> "$LOG_FILE"
-  echo "{\"status\":\"ERROR\",\"action\":\"$ACTION\",\"message\":\"Multiple Discord bot processes detected. Run stop first.\"}"
+  echo "{\"status\":\"ERROR\",\"action\":\"$ACTION\",\"message\":\"Multiple Discord detected: run stop first.\"}"
   exit 32
 fi
 
@@ -47,7 +47,7 @@ if [ -f "$DISCORD_MEETING_START_SCRIPT" ] && sh "$DISCORD_MEETING_START_SCRIPT";
   echo "$TIMESTAMP|INFO|$ACTION|0|meeting|started" >> "$LOG_FILE"
 else
   echo "$TIMESTAMP|ERROR|$ACTION|31|meeting|start_failed" >> "$LOG_FILE"
-  echo "{\"status\":\"ERROR\",\"action\":\"$ACTION\",\"message\":\"Unable to start Discord meeting capture\"}"
+  echo "{\"status\":\"ERROR\",\"action\":\"$ACTION\",\"message\":\"Unable to start Discord meeting\"}"
   exit 31
 fi
 

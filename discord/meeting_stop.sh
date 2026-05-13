@@ -51,14 +51,14 @@ fi
 
 if [ "$REMAINING_COUNT" -gt 0 ]; then
   echo "$TIMESTAMP|ERROR|$ACTION|41|discord_bot|stop_failed" >> "$LOG_FILE"
-  echo "{\"status\":\"ERROR\",\"action\":\"$ACTION\",\"message\":\"Unable to stop Discord bot process\"}"
+  echo "{\"status\":\"ERROR\",\"action\":\"$ACTION\",\"message\":\"Unable to stop Discord bot\"}"
   exit 41
 fi
 
 echo "$TIMESTAMP|INFO|$ACTION|0|discord_bot|stopped" >> "$LOG_FILE"
 
 if [ "$MEETING_STOP_RESULT" = "failed" ]; then
-  echo "{\"status\":\"SUCCESS\",\"action\":\"$ACTION\",\"message\":\"Bot stopped, but meeting stop acknowledgment failed\"}"
+  echo "{\"status\":\"SUCCESS\",\"action\":\"$ACTION\",\"message\":\"Bot stopped, but meeting stop failed\"}"
 else
   echo "{\"status\":\"SUCCESS\",\"action\":\"$ACTION\",\"message\":\"Meeting stopped\"}"
 fi
