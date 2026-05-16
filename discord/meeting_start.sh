@@ -42,7 +42,7 @@ else
   fi
 fi
 
-if [ -f "$DISCORD_MEETING_START_SCRIPT" ] && sh "$DISCORD_MEETING_START_SCRIPT"; then
+if sh "$DISCORD_MEETING_START_SCRIPT"; then
   echo "{\"status\":\"SUCCESS\",\"action\":\"$ACTION\",\"message\":\"Meeting started\"}"
   echo "$TIMESTAMP|INFO|$ACTION|0|meeting|started" >> "$LOG_FILE"
 else

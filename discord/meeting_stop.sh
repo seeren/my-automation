@@ -21,7 +21,7 @@ if [ "$BOT_COUNT" -eq 0 ]; then
   exit 0
 fi
 
-if [ -f "$DISCORD_MEETING_STOP_SCRIPT" ] && sh "$DISCORD_MEETING_STOP_SCRIPT"; then
+if sh "$DISCORD_MEETING_STOP_SCRIPT"; then
   echo "$TIMESTAMP|INFO|$ACTION|0|meeting|stopped" >> "$LOG_FILE"
 else
   echo "$TIMESTAMP|ERROR|$ACTION|40|meeting|stop_failed" >> "$LOG_FILE"
