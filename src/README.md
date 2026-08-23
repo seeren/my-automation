@@ -5,7 +5,8 @@ The shared CLI is split by responsibility:
 - `../bin/shortcuts` defines the `argc` command handlers. Each handler receives
   parsed arguments and delegates to a controller through `dispatch`.
 - `dispatcher.sh` is the technical execution boundary. It runs a controller,
-  logs the outcome, and forwards the response and exit status.
+  isolates intermediate output, logs the outcome, and renders the standard
+  JSON response from the exit status.
 - `controllers/` contains action orchestration. Controllers may depend on one
   or more services as business capabilities are implemented.
 

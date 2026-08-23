@@ -9,9 +9,7 @@ export API_CURSOR_TOKEN="$API_CURSOR_TOKEN"
 
 # clickup/inbox_add.sh
 export API_CLICKUP_BASE_URL="https://api.clickup.com"
-export CLICKUP_BASE_URL="https://app.clickup.com"
-export CLICKUP_INBOX_ID="901521081133"
-export CLICKUP_INBOX_PATH="90152254070/v/l/6-${CLICKUP_INBOX_ID}-1"
+export CLICKUP_INBOX_ID="900303726304"
 
 # discord/
 export BOT_DISCORD_GUILD_ID="687956938872324097"
