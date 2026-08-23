@@ -30,8 +30,8 @@ meeting_stop() {
 }
 
 # @cmd Add an item to the ClickUp inbox
-# @arg title <TITLE> Inbox item title
-# @arg priority <PRIORITY> Inbox item priority
+# @arg title! <TITLE> Inbox item title
+# @option --priority <PRIORITY> Inbox item priority
 inbox_add() {
   dispatch inbox_add_controller "${argc_title-}" "${argc_priority-}"
 }
