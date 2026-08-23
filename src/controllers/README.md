@@ -10,6 +10,6 @@ To add a command:
 3. Declare the command and its arguments with `argc` annotations.
 4. Dispatch the command handler to `<command>_controller`.
 
-Controllers return the response on standard output and use their exit status
-to report success or failure. The dispatcher owns technical logging and
-response forwarding.
+Controllers report success or failure through their exit status and do not
+format responses. The dispatcher owns technical logging and renders the
+standard JSON response.

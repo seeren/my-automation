@@ -6,28 +6,33 @@ dispatch() (
 
   local action_name
   local log_file
-  local response
+  local _action_output
   local code
   local level
+  local status
+  local message
+  local response
 
   action_name=${action%_controller}
   log_file="$(dirname "${BASH_SOURCE[0]}")/../vars/logs/$action_name.log"
 
-  if response=$("$action" "$@"); then
+  if _action_output=$("$action" "$@"); then
     code=0
     level=INFO
+    status=SUCCESS
+    message='Action completed'
   else
     code=$?
     level=ERROR
+    status=ERROR
+    message='Action failed'
   fi
 
-  if [[ -z $response ]]; then
-    if [[ $code -eq 0 ]]; then
-      code=1
-    fi
-    level=ERROR
-    response="{\"status\":\"ERROR\",\"action\":\"$action_name\",\"message\":\"Unexpected action failure\"}"
-  fi
+  response=$(jq -cjn \
+    --arg status "$status" \
+    --arg action "$action_name" \
+    --arg message "$message" \
+    '{status: $status, action: $action, message: $message}')
 
   printf '%s|%s|%s|%s|dispatch\n' \
     "$(date -Iseconds)" "$level" "$action_name" "$code" >>"$log_file"

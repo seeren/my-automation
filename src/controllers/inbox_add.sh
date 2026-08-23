@@ -15,7 +15,6 @@ inbox_add_controller() {
   local payload
   local _response_body
   local _http_code
-  local service_status
 
   clickup_date_get_from_now start_date_ms due_date_ms
 
@@ -23,23 +22,4 @@ inbox_add_controller() {
   payload=$(clickup_task_payload_build "$title" "$priority" "$start_date_ms" "$due_date_ms")
 
   clickup_inbox_task_create "$payload" _response_body _http_code
-
-  service_status=$?
-
-  if ((service_status == 0)); then
-    jq -cjn \
-      --arg status SUCCESS \
-      --arg action inbox_add \
-      --arg message 'Inbox item added' \
-      '{status: $status, action: $action, message: $message}'
-    return
-  fi
-
-  jq -cjn \
-    --arg status ERROR \
-    --arg action inbox_add \
-    --arg message 'ClickUp API error' \
-    '{status: $status, action: $action, message: $message}'
-
-  return "$service_status"
 }
