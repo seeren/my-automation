@@ -66,7 +66,7 @@ So I combined:
 
 - iPhone Shortcuts + SSH to the Mac execution unit
 - Host secrets for tokens/keys (see Configuration)
-- Non-secret app config in `config/app.sh`
+- Non-secret app config in `config.sh`
 
 ### Shared CLI runtime
 
@@ -136,7 +136,7 @@ npm install
 
 ## Configuration
 
-Entry points `source config/app.sh`.
+Entry points `source config.sh`.
 
 **Host secrets** (required in the environment — see [dotfiles](https://github.com/cyrilichti/dotfiles)):
 
@@ -144,10 +144,9 @@ Entry points `source config/app.sh`.
 - `BOT_DISCORD_TOKEN`
 - `API_CURSOR_TOKEN`
 
-**Constants** (set in `config/app.sh`):
+**Constants** (set in `config.sh`):
 
 - `API_CLICKUP_BASE_URL`
-- `CLICKUP_BASE_URL`
 - `CLICKUP_INBOX_ID`
 - `BOT_DISCORD_GUILD_ID`
 - `BOT_DISCORD_VOICE_CHANNEL_ID`
@@ -162,7 +161,7 @@ Non-interactive SSH: `zsh -lc '…'` or `launchctl setenv` so secrets are inheri
 - In [Discord Developer Portal](https://discord.com/developers/applications), create an application and a bot.
 - Copy bot token into host secrets as `BOT_DISCORD_TOKEN`.
 - Invite the bot with scope `bot` and permissions `View Channels`, `Connect` (optional `Speak`).
-- Set server and voice channel IDs in `config/app.sh`:
+- Set server and voice channel IDs in `config.sh`:
   - `BOT_DISCORD_GUILD_ID`
   - `BOT_DISCORD_VOICE_CHANNEL_ID`
 

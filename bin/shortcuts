@@ -5,7 +5,7 @@
 ROOT="$(dirname "$0")/.."
 
 # shellcheck source=/dev/null
-source "$ROOT/config/app.sh"
+source "$ROOT/config.sh"
 
 SRC="$ROOT/src"
 

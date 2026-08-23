@@ -24,7 +24,7 @@ The iPhone is the UI + validation layer. The Mac is the execution layer.
 - Logs:
   - `vars/logs/<workflow>.log` (see `docs/logging.md`)
 - Config:
-  - `config/app.sh` (re-exports host secrets; sets tracked constants)
+  - `config.sh` (re-exports host secrets; sets tracked constants)
 
 ---
 
@@ -39,7 +39,7 @@ The iPhone is the UI + validation layer. The Mac is the execution layer.
 
 - Host secrets (`API_CLICKUP_TOKEN`, `BOT_DISCORD_TOKEN`, `API_CURSOR_TOKEN`)
   live outside the repo (see [dotfiles](https://github.com/cyrilichti/dotfiles)).
-- `config/app.sh` re-exports them (`export API_CLICKUP_TOKEN="$API_CLICKUP_TOKEN"`)
+- `config.sh` re-exports them (`export API_CLICKUP_TOKEN="$API_CLICKUP_TOKEN"`)
   and sets tracked constants (URLs, IDs). Entry points `source` it once; helpers
   inherit. Scripts must not source a repo-local secrets file.
 - Prefer explicit names per integration: `API_CLICKUP_TOKEN`, `CLICKUP_INBOX_ID`, etc.
@@ -128,11 +128,11 @@ If not possible, ensure the iPhone Shortcut makes retries explicit.
 
 ## Validation boundary
 
-The iPhone Shortcut is the validation/UI layer. `config/app.sh` re-exports
+The iPhone Shortcut is the validation/UI layer. `config.sh` re-exports
 host secrets and sets tracked constants.
 
 Scripts should **not** add environment variable presence checks. They assume
-the entry point has sourced `config/app.sh`.
+the entry point has sourced `config.sh`.
 
 Keep scripts focused on one action, avoid duplicating UI validation, and avoid echoing raw payloads that might contain secrets.
 
