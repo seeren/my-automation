@@ -1,21 +1,15 @@
 #!/usr/bin/env bash
 
-discord_bot_require_absent() {
+discord_bot_is_running() {
   local service_root
   local bot_entrypoint
-  local log_file
   local bot_pids
 
   service_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
   bot_entrypoint="$service_root/discord/lib/bot.js"
-  log_file="$service_root/vars/logs/discord.log"
 
   bot_pids=$(ps -ax -o pid=,command= | awk -v entrypoint="$bot_entrypoint" 'index($0, entrypoint) && $0 !~ /awk/ {print $1}')
-  [[ -z $bot_pids ]] && return 0
-
-  printf '%s|ERROR|meeting_record|32|discord_bot|active_process_detected\n' \
-    "$(date -Iseconds)" >>"$log_file"
-  return 32
+  [[ -n $bot_pids ]]
 }
 
 discord_bot_start() {
