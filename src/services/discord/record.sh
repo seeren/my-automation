@@ -2,48 +2,38 @@
 
 discord_record() {
   local service_root
-  local runtime_dir
   local command_file
   local status_file
   local log_file
-  local timeout_seconds=25
-  local sleep_seconds=1
   local command_id
   local elapsed=0
-  local status_content
 
   service_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
-  runtime_dir="$service_root/vars/runtime"
-  command_file="$runtime_dir/discord-command.json"
-  status_file="$runtime_dir/discord-status.json"
+  command_file="$service_root/vars/runtime/discord-command.json"
+  status_file="$service_root/vars/runtime/discord-status.json"
   log_file="$service_root/vars/logs/discord.log"
   command_id="record-$(date +%s)-$$"
 
   printf '{"id":"%s","action":"record"}' "$command_id" >"$command_file"
 
-  while ((elapsed < timeout_seconds)); do
+  while ((elapsed < 25)); do
     if [[ -f $status_file ]]; then
-      status_content=$(<"$status_file")
-      case $status_content in
+      case $(<"$status_file") in
         *"\"id\":\"$command_id\",\"action\":\"record\",\"status\":\"success\",\"state\":\"recording_started\""* | \
         *"\"id\":\"$command_id\",\"action\":\"record\",\"status\":\"success\",\"state\":\"recording_already_started\""*)
           return 0
           ;;
         *"\"id\":\"$command_id\",\"action\":\"record\",\"status\":\"error\",\"state\":\"meeting_error\""*)
-          printf '%s|ERROR|meeting_record|31|meeting|start_failed\n' \
-            "$(date -Iseconds)" >>"$log_file"
           return 31
           ;;
         *"\"id\":\"$command_id\",\"action\":\"record\",\"status\":\"error\",\"state\":\"recording_error\""*)
-          printf '%s|ERROR|meeting_record|1|recording|problem\n' \
-            "$(date -Iseconds)" >>"$log_file"
           return 1
           ;;
       esac
     fi
 
-    sleep "$sleep_seconds"
-    elapsed=$((elapsed + sleep_seconds))
+    sleep 1
+    elapsed=$((elapsed + 1))
   done
 
   printf '%s|ERROR|meeting_record|1|recording|timeout\n' \

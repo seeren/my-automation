@@ -30,7 +30,6 @@ const AUDIO_BITS_PER_SAMPLE = 16;
 
 const meetingState = {
   connection: null,
-  connectionStateListener: null,
   speakingListener: null,
   sessionId: null,
   isRecording: false,
@@ -38,12 +37,9 @@ const meetingState = {
   speakerAudioFiles: new Map(),
 };
 
-function logBot(level, code, input, details) {
-  if (level !== "ERROR") {
-    return;
-  }
+function logBotError(code, input, details) {
   const ts = new Date().toISOString();
-  fs.appendFileSync(LOG_FILE, `${ts}|${level}|discord_bot|${code}|${input}|${details}\n`);
+  fs.appendFileSync(LOG_FILE, `${ts}|ERROR|discord_bot|${code}|${input}|${details}\n`);
 }
 
 function readCommand() {
@@ -85,7 +81,7 @@ function writeStatus(id, action, status, state, error, metadata) {
 
 function requireConfig() {
   if (!TOKEN || !GUILD_ID || !VOICE_CHANNEL_ID) {
-    logBot("ERROR", 2, "online", "error|missing_discord_env");
+    logBotError(2, "online", "error|missing_discord_env");
     process.exit(2);
   }
 }
@@ -129,10 +125,6 @@ function stopCurrentConnection() {
   stopAudioCapture();
   if (!meetingState.connection) {
     return;
-  }
-  if (meetingState.connectionStateListener) {
-    meetingState.connection.off("stateChange", meetingState.connectionStateListener);
-    meetingState.connectionStateListener = null;
   }
   meetingState.connection.destroy();
   meetingState.connection = null;
@@ -196,7 +188,6 @@ function getOrCreateSpeakerAudioFile(sessionId, userId, speakerName) {
     closed: false,
   };
   meetingState.speakerAudioFiles.set(userId, speakerAudioFile);
-  logBot("INFO", 0, "audio_capture", `session=${sessionId}|speaker=${userId}|file=${filePath}`);
   return speakerAudioFile;
 }
 
@@ -214,33 +205,6 @@ function finalizeSpeakerAudioFiles() {
     finalizeSpeakerAudioFile(speakerAudioFile);
   }
   meetingState.speakerAudioFiles.clear();
-}
-
-function attachConnectionStateLogger(connection) {
-  if (meetingState.connection === connection && meetingState.connectionStateListener) {
-    return;
-  }
-  if (meetingState.connection && meetingState.connectionStateListener) {
-    meetingState.connection.off("stateChange", meetingState.connectionStateListener);
-    meetingState.connectionStateListener = null;
-  }
-  const listener = (_oldState, newState) => {
-    logBot("INFO", 0, "voice", `state=${newState.status}`);
-  };
-  connection.on("stateChange", listener);
-  meetingState.connection = connection;
-  meetingState.connectionStateListener = listener;
-}
-
-async function waitForVoiceReady(connection, scope) {
-  if (connection.state.status === VoiceConnectionStatus.Ready) {
-    logBot("INFO", 0, "voice", `scope=${scope}|state=ready`);
-    return;
-  }
-
-  logBot("INFO", 0, "voice", `scope=${scope}|state=${connection.state.status}|waiting_ready`);
-  await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
-  logBot("INFO", 0, "voice", `scope=${scope}|state=ready`);
 }
 
 function startSpeakerCapture(receiver, client, userId) {
@@ -276,17 +240,12 @@ function startSpeakerCapture(receiver, client, userId) {
     },
   });
   const decoder = new OpusScript(AUDIO_SAMPLE_RATE, AUDIO_CHANNELS, OpusScript.Application.AUDIO);
-  const speakerStream = {
+  meetingState.activeAudioStreams.set(userId, {
     opusStream,
     decoder,
-    opusBytesReceived: 0,
-    pcmBytesWritten: 0,
-  };
-
-  meetingState.activeAudioStreams.set(userId, speakerStream);
+  });
 
   opusStream.on("data", (chunk) => {
-    speakerStream.opusBytesReceived += chunk.length;
     try {
       const pcmChunk = decoder.decode(chunk);
       const pcmBuffer = Buffer.isBuffer(pcmChunk) ? pcmChunk : Buffer.from(pcmChunk);
@@ -297,38 +256,31 @@ function startSpeakerCapture(receiver, client, userId) {
         pcmBuffer.length,
         44 + speakerAudioFile.pcmBytes,
       );
-      speakerStream.pcmBytesWritten += pcmBuffer.length;
       speakerAudioFile.pcmBytes += pcmBuffer.length;
     } catch (err) {
       const message = err && err.message ? err.message : "opus_decode_error";
-      logBot("ERROR", 72, "audio_capture", `session=${meetingState.sessionId}|speaker=${userId}|${message}`);
+      logBotError(72, "audio_capture", `session=${meetingState.sessionId}|speaker=${userId}|${message}`);
     }
   });
 
   opusStream.on("error", (err) => {
     const message = err && err.message ? err.message : "speaker_stream_error";
-    logBot("ERROR", 70, "audio_capture", `session=${meetingState.sessionId}|speaker=${userId}|${message}`);
+    logBotError(70, "audio_capture", `session=${meetingState.sessionId}|speaker=${userId}|${message}`);
   });
 
   let released = false;
-  const releaseStream = (reason) => () => {
+  const releaseStream = () => {
     if (released) {
       return;
     }
     released = true;
     meetingState.activeAudioStreams.delete(userId);
-    logBot(
-      "INFO",
-      0,
-      "audio_capture",
-      `session=${meetingState.sessionId}|speaker=${userId}|state=stream_closed|reason=${reason}|opus_bytes=${speakerStream.opusBytesReceived}|pcm_bytes=${speakerStream.pcmBytesWritten}`,
-    );
     if (typeof decoder.delete === "function") {
       decoder.delete();
     }
   };
-  opusStream.once("end", releaseStream("end"));
-  opusStream.once("close", releaseStream("close"));
+  opusStream.once("end", releaseStream);
+  opusStream.once("close", releaseStream);
 }
 
 function attachAudioCapture(connection, client) {
@@ -340,19 +292,12 @@ function attachAudioCapture(connection, client) {
 
   meetingState.speakingListener = speakingListener;
   receiver.speaking.on("start", speakingListener);
-  logBot("INFO", 0, "audio_capture", `session=${meetingState.sessionId}|state=speaking_listener_attached`);
 }
 
 async function startMeeting(client) {
-  let connection = meetingState.connection;
-  if (!connection) {
-    connection = getVoiceConnection(GUILD_ID);
-    if (connection) {
-      meetingState.connection = connection;
-    }
-  }
-  if (connection && connection.state.status !== VoiceConnectionStatus.Destroyed) {
-    logBot("INFO", 0, "meeting", `state=already_joined|voice=${connection.state.status}`);
+  const existingConnection = meetingState.connection || getVoiceConnection(GUILD_ID);
+  if (existingConnection && existingConnection.state.status !== VoiceConnectionStatus.Destroyed) {
+    meetingState.connection = existingConnection;
     return "meeting_already_started";
   }
 
@@ -363,7 +308,7 @@ async function startMeeting(client) {
     throw new Error("Configured voice channel is missing or not a voice channel");
   }
 
-  connection = joinVoiceChannel({
+  meetingState.connection = joinVoiceChannel({
     channelId: channel.id,
     guildId: guild.id,
     adapterCreator: guild.voiceAdapterCreator,
@@ -371,25 +316,10 @@ async function startMeeting(client) {
     selfMute: false,
   });
 
-  attachConnectionStateLogger(connection);
-  meetingState.connection = connection;
-  logBot("INFO", 0, "meeting", `state=joined|guild=${guild.id}|channel=${channel.id}|voice=${connection.state.status}`);
   return "meeting_started";
 }
 
 async function startRecording(client) {
-  let connection = meetingState.connection;
-  if (!connection) {
-    connection = getVoiceConnection(GUILD_ID);
-    if (connection) {
-      meetingState.connection = connection;
-    }
-  }
-
-  if (!connection) {
-    throw new Error("meeting_not_started");
-  }
-
   if (meetingState.isRecording) {
     return {
       state: "recording_already_started",
@@ -397,41 +327,16 @@ async function startRecording(client) {
     };
   }
 
-  attachConnectionStateLogger(connection);
-  await waitForVoiceReady(connection, "record");
+  if (meetingState.connection.state.status !== VoiceConnectionStatus.Ready) {
+    await entersState(meetingState.connection, VoiceConnectionStatus.Ready, 20_000);
+  }
   meetingState.sessionId = createSessionId();
   meetingState.isRecording = true;
-  attachAudioCapture(connection, client);
-  logBot("INFO", 0, "audio_capture", `session=${meetingState.sessionId}|state=ready`);
+  attachAudioCapture(meetingState.connection, client);
   return {
     state: "recording_started",
     sessionId: meetingState.sessionId,
   };
-}
-
-async function recordMeeting(client) {
-  let meetingResult;
-
-  try {
-    meetingResult = await startMeeting(client);
-  } catch (err) {
-    const recordError = err instanceof Error ? err : new Error("unknown_meeting_error");
-    recordError.recordPhase = "meeting";
-    throw recordError;
-  }
-
-  try {
-    const recordingResult = await startRecording(client);
-    return {
-      meetingState: meetingResult,
-      recordingState: recordingResult.state,
-      sessionId: recordingResult.sessionId,
-    };
-  } catch (err) {
-    const recordError = err instanceof Error ? err : new Error("unknown_recording_error");
-    recordError.recordPhase = "recording";
-    throw recordError;
-  }
 }
 
 function stopMeeting() {
@@ -461,61 +366,42 @@ async function main() {
 
   let busy = false;
 
-  client.once("clientReady", () => {
-    logBot("INFO", 0, "online", "success");
-  });
-
   setInterval(async () => {
     if (busy) {
       return;
     }
     const cmd = readCommand();
-    if (!cmd) {
-      return;
-    }
-    if (!cmd.id || !cmd.action) {
+    if (!cmd || !cmd.id || !cmd.action) {
       return;
     }
 
     busy = true;
+    let commandPhase;
     try {
       if (cmd.action === "record") {
-        const recordResult = await recordMeeting(client);
-        writeStatus(cmd.id, cmd.action, "success", recordResult.recordingState, undefined, {
-          meeting_state: recordResult.meetingState,
-          session_id: recordResult.sessionId,
+        commandPhase = "meeting";
+        const meetingResult = await startMeeting(client);
+        commandPhase = "recording";
+        const recordingResult = await startRecording(client);
+        writeStatus(cmd.id, cmd.action, "success", recordingResult.state, undefined, {
+          meeting_state: meetingResult,
+          session_id: recordingResult.sessionId,
         });
-        logBot(
-          "INFO",
-          0,
-          "command",
-          `cmd_id=${cmd.id}|meeting=${recordResult.meetingState}|state=${recordResult.recordingState}|session=${recordResult.sessionId || "none"}`,
-        );
       } else if (cmd.action === "stop") {
         const stopContext = stopMeeting();
         writeStatus(cmd.id, cmd.action, "success", "meeting_stopped", undefined, {
           session_id: stopContext.sessionId,
           recording_was_active: stopContext.recordingWasActive,
         });
-        logBot(
-          "INFO",
-          0,
-          "command",
-          `cmd_id=${cmd.id}|state=meeting_stopped|recording=${stopContext.recordingWasActive}|session=${stopContext.sessionId || "none"}`,
-        );
       } else {
         writeStatus(cmd.id, cmd.action, "error", "error", "unknown_action");
-        logBot("ERROR", 50, "command", `cmd_id=${cmd.id}|state=error|unknown_action`);
+        logBotError(50, "command", `cmd_id=${cmd.id}|state=error|unknown_action`);
       }
     } catch (err) {
       const message = err && err.message ? err.message : "unknown_bot_error";
-      const state = cmd.action === "record" && err && err.recordPhase === "meeting"
-        ? "meeting_error"
-        : cmd.action === "record"
-          ? "recording_error"
-          : "error";
+      const state = commandPhase ? `${commandPhase}_error` : "error";
       writeStatus(cmd.id, cmd.action, "error", state, message);
-      logBot("ERROR", 51, "command", `cmd_id=${cmd.id}|state=${state}|${message}`);
+      logBotError(51, "command", `cmd_id=${cmd.id}|state=${state}|${message}`);
     } finally {
       clearCommand();
       busy = false;
@@ -527,6 +413,6 @@ async function main() {
 
 main().catch((err) => {
   const message = err && err.message ? err.message : "fatal_startup_error";
-  logBot("ERROR", 1, "online", `error|${message}`);
+  logBotError(1, "online", `error|${message}`);
   process.exit(1);
 });
