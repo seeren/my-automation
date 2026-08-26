@@ -398,7 +398,7 @@ async function startRecording(client) {
   }
 
   attachConnectionStateLogger(connection);
-  await waitForVoiceReady(connection, "record_start");
+  await waitForVoiceReady(connection, "record");
   meetingState.sessionId = createSessionId();
   meetingState.isRecording = true;
   attachAudioCapture(connection, client);
@@ -407,6 +407,31 @@ async function startRecording(client) {
     state: "recording_started",
     sessionId: meetingState.sessionId,
   };
+}
+
+async function recordMeeting(client) {
+  let meetingResult;
+
+  try {
+    meetingResult = await startMeeting(client);
+  } catch (err) {
+    const recordError = err instanceof Error ? err : new Error("unknown_meeting_error");
+    recordError.recordPhase = "meeting";
+    throw recordError;
+  }
+
+  try {
+    const recordingResult = await startRecording(client);
+    return {
+      meetingState: meetingResult,
+      recordingState: recordingResult.state,
+      sessionId: recordingResult.sessionId,
+    };
+  } catch (err) {
+    const recordError = err instanceof Error ? err : new Error("unknown_recording_error");
+    recordError.recordPhase = "recording";
+    throw recordError;
+  }
 }
 
 function stopMeeting() {
@@ -454,16 +479,18 @@ async function main() {
 
     busy = true;
     try {
-      if (cmd.action === "start") {
-        const meetingStateResult = await startMeeting(client);
-        writeStatus(cmd.id, cmd.action, "success", meetingStateResult);
-        logBot("INFO", 0, "command", `cmd_id=${cmd.id}|state=${meetingStateResult}`);
-      } else if (cmd.action === "record_start") {
-        const recordingResult = await startRecording(client);
-        writeStatus(cmd.id, cmd.action, "success", recordingResult.state, undefined, {
-          session_id: recordingResult.sessionId,
+      if (cmd.action === "record") {
+        const recordResult = await recordMeeting(client);
+        writeStatus(cmd.id, cmd.action, "success", recordResult.recordingState, undefined, {
+          meeting_state: recordResult.meetingState,
+          session_id: recordResult.sessionId,
         });
-        logBot("INFO", 0, "command", `cmd_id=${cmd.id}|state=${recordingResult.state}|session=${recordingResult.sessionId || "none"}`);
+        logBot(
+          "INFO",
+          0,
+          "command",
+          `cmd_id=${cmd.id}|meeting=${recordResult.meetingState}|state=${recordResult.recordingState}|session=${recordResult.sessionId || "none"}`,
+        );
       } else if (cmd.action === "stop") {
         const stopContext = stopMeeting();
         writeStatus(cmd.id, cmd.action, "success", "meeting_stopped", undefined, {
@@ -482,8 +509,13 @@ async function main() {
       }
     } catch (err) {
       const message = err && err.message ? err.message : "unknown_bot_error";
-      writeStatus(cmd.id, cmd.action, "error", "error", message);
-      logBot("ERROR", 51, "command", `cmd_id=${cmd.id}|state=error|${message}`);
+      const state = cmd.action === "record" && err && err.recordPhase === "meeting"
+        ? "meeting_error"
+        : cmd.action === "record"
+          ? "recording_error"
+          : "error";
+      writeStatus(cmd.id, cmd.action, "error", state, message);
+      logBot("ERROR", 51, "command", `cmd_id=${cmd.id}|state=${state}|${message}`);
     } finally {
       clearCommand();
       busy = false;
