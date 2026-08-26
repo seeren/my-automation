@@ -297,8 +297,7 @@ function attachAudioCapture(connection, client) {
 async function startMeeting(client) {
   const existingConnection = meetingState.connection || getVoiceConnection(GUILD_ID);
   if (existingConnection && existingConnection.state.status !== VoiceConnectionStatus.Destroyed) {
-    meetingState.connection = existingConnection;
-    return "meeting_already_started";
+    throw new Error("meeting_already_active");
   }
 
   const guild = await client.guilds.fetch(GUILD_ID);
@@ -321,10 +320,7 @@ async function startMeeting(client) {
 
 async function startRecording(client) {
   if (meetingState.isRecording) {
-    return {
-      state: "recording_already_started",
-      sessionId: meetingState.sessionId,
-    };
+    throw new Error("recording_already_active");
   }
 
   if (meetingState.connection.state.status !== VoiceConnectionStatus.Ready) {

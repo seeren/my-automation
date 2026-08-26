@@ -19,8 +19,7 @@ discord_record() {
   while ((elapsed < 25)); do
     if [[ -f $status_file ]]; then
       case $(<"$status_file") in
-        *"\"id\":\"$command_id\",\"action\":\"record\",\"status\":\"success\",\"state\":\"recording_started\""* | \
-        *"\"id\":\"$command_id\",\"action\":\"record\",\"status\":\"success\",\"state\":\"recording_already_started\""*)
+        *"\"id\":\"$command_id\",\"action\":\"record\",\"status\":\"success\",\"state\":\"recording_started\""*)
           return 0
           ;;
         *"\"id\":\"$command_id\",\"action\":\"record\",\"status\":\"error\",\"state\":\"meeting_error\""*)
