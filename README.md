@@ -97,7 +97,7 @@ brew install whisper-cpp
 Download IA model locally
 
 ```bash
-curl -L "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin?download=true" -o ~/Workspace/shortcuts/vars/runtime/ggml-large-v3.bin
+curl -L "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin?download=true" -o ~/Workspace/shortcuts/vars/ggml-large-v3.bin
 ```
 
 #### Meeting summary (Cursor API)

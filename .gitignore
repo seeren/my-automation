@@ -3,13 +3,21 @@ env.sh
 *.env
 node_modules/
 vars/logs/*.log
-vars/pids/*.pid
-vars/runtime/*.json
-vars/runtime/audios/*.opus
-vars/runtime/audios/*.wav
-vars/runtime/transcripts/*.txt
-vars/runtime/transcripts/*.md
-vars/runtime/*.bin
+vars/pids/*
+!vars/pids/.gitkeep
+vars/active
+vars/commands/*
+!vars/commands/.gitkeep
+vars/status/*
+!vars/status/.gitkeep
+vars/sessions/*
+!vars/sessions/.gitkeep
+vars/audios/*.opus
+vars/audios/*.wav
+vars/transcripts/*.txt
+vars/transcripts/*.md
+vars/*.bin
+vars/*.json
 
 # Agentic Workflow
 .cursor/mcp.json

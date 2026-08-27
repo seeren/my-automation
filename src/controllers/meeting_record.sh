@@ -5,10 +5,9 @@ source "$(dirname "${BASH_SOURCE[0]}")/../services/discord/bot.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/../services/discord/record.sh"
 
 meeting_record_controller() {
-  if discord_bot_is_running; then
-    return 1
-  fi
+  local command_id
+  command_id="record-$(date +%s)-$$"
 
-  discord_bot_start || return $?
-  discord_record
+  discord_bot_start "$command_id"
+  discord_record "$command_id"
 }

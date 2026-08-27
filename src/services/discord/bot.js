@@ -5,7 +5,7 @@ const os = require("os");
 const path = require("path");
 const sodium = require("libsodium-wrappers");
 const OpusScript = require("opusscript");
-const { Client, GatewayIntentBits, ChannelType } = require("discord.js");
+const { Client, GatewayIntentBits } = require("discord.js");
 const {
   joinVoiceChannel,
   getVoiceConnection,
@@ -14,16 +14,19 @@ const {
   entersState,
 } = require("@discordjs/voice");
 
-const TOKEN = process.env.BOT_DISCORD_TOKEN || "";
-const GUILD_ID = process.env.BOT_DISCORD_GUILD_ID || "";
-const VOICE_CHANNEL_ID = process.env.BOT_DISCORD_VOICE_CHANNEL_ID || "";
+const TOKEN = process.env.BOT_DISCORD_TOKEN;
+const GUILD_ID = process.env.BOT_DISCORD_GUILD_ID;
+const VOICE_CHANNEL_ID = process.env.BOT_DISCORD_VOICE_CHANNEL_ID;
 const HOME_DIR = os.homedir();
 
-const RUNTIME_DIR = path.join(HOME_DIR, "Workspace/shortcuts/vars/runtime");
-const AUDIO_DIR = path.join(RUNTIME_DIR, "audios");
-const COMMAND_FILE = path.join(RUNTIME_DIR, "discord-command.json");
-const STATUS_FILE = path.join(RUNTIME_DIR, "discord-status.json");
-const LOG_FILE = path.join(HOME_DIR, "Workspace/shortcuts/vars/logs/discord.log");
+const COMMAND_ID = process.argv[2];
+if (!COMMAND_ID) process.exit(2);
+
+const VARS_DIR = path.join(HOME_DIR, "Workspace/shortcuts/vars");
+const AUDIO_DIR = path.join(VARS_DIR, "audios");
+const COMMAND_DIR = path.join(VARS_DIR, "commands");
+const STATUS_DIR = path.join(VARS_DIR, "status");
+const SESSION_DIR = path.join(VARS_DIR, "sessions");
 const AUDIO_SAMPLE_RATE = 48000;
 const AUDIO_CHANNELS = 2;
 const AUDIO_BITS_PER_SAMPLE = 16;
@@ -37,53 +40,32 @@ const meetingState = {
   speakerAudioFiles: new Map(),
 };
 
-function logBotError(code, input, details) {
-  const ts = new Date().toISOString();
-  fs.appendFileSync(LOG_FILE, `${ts}|ERROR|discord_bot|${code}|${input}|${details}\n`);
-}
-
 function readCommand() {
-  if (!fs.existsSync(COMMAND_FILE)) {
-    return null;
-  }
-  try {
-    return JSON.parse(fs.readFileSync(COMMAND_FILE, "utf8"));
-  } catch (_err) {
-    return null;
-  }
+  const commandPath = path.join(COMMAND_DIR, COMMAND_ID);
+  if (!fs.existsSync(commandPath)) return null;
+
+  const action = fs.readFileSync(commandPath, "utf8").trim();
+  if (!action) return null;
+
+  return { id: COMMAND_ID, action };
 }
 
 function clearCommand() {
-  if (fs.existsSync(COMMAND_FILE)) {
-    fs.unlinkSync(COMMAND_FILE);
-  }
+  const commandPath = path.join(COMMAND_DIR, COMMAND_ID);
+  if (fs.existsSync(commandPath)) fs.unlinkSync(commandPath);
 }
 
-function writeStatus(id, action, status, state, error, metadata) {
-  const payload = {
-    id,
-    action,
-    status,
-    state,
-    timestamp: new Date().toISOString(),
-  };
-
-  if (metadata && typeof metadata === "object") {
-    Object.assign(payload, metadata);
-  }
-
-  if (error) {
-    payload.error = error;
-  }
-
-  fs.writeFileSync(STATUS_FILE, JSON.stringify(payload));
+function writeStatus(status) {
+  fs.writeFileSync(path.join(STATUS_DIR, COMMAND_ID), status);
 }
 
-function requireConfig() {
-  if (!TOKEN || !GUILD_ID || !VOICE_CHANNEL_ID) {
-    logBotError(2, "online", "error|missing_discord_env");
-    process.exit(2);
-  }
+function writeSession(sessionId) {
+  fs.writeFileSync(path.join(SESSION_DIR, COMMAND_ID), sessionId);
+}
+
+function clearStatus() {
+  const statusPath = path.join(STATUS_DIR, COMMAND_ID);
+  if (fs.existsSync(statusPath)) fs.unlinkSync(statusPath);
 }
 
 function sanitizeForFilename(input) {
@@ -103,29 +85,27 @@ function createSessionId() {
 }
 
 function closeActiveAudioStreams() {
-  for (const speakerStreams of meetingState.activeAudioStreams.values()) {
-    const { opusStream, decoder } = speakerStreams;
+  for (const { opusStream, decoder } of meetingState.activeAudioStreams.values()) {
     try {
       opusStream.destroy();
-    } catch (_err) {
+    } catch {
       // Ignore teardown failures during stop.
     }
+
     try {
-      if (decoder && typeof decoder.delete === "function") {
-        decoder.delete();
-      }
-    } catch (_err) {
+      if (typeof decoder?.delete === "function") decoder.delete();
+    } catch {
       // Ignore teardown failures during stop.
     }
   }
+
   meetingState.activeAudioStreams.clear();
 }
 
 function stopCurrentConnection() {
   stopAudioCapture();
-  if (!meetingState.connection) {
-    return;
-  }
+  if (!meetingState.connection) return;
+
   meetingState.connection.destroy();
   meetingState.connection = null;
 }
@@ -180,6 +160,7 @@ function getOrCreateSpeakerAudioFile(sessionId, userId, speakerName) {
   const filePath = getSpeakerAudioPath(sessionId, userId, speakerName);
   const fd = fs.openSync(filePath, "w");
   fs.writeSync(fd, buildWavHeader(0), 0, 44, 0);
+
   const speakerAudioFile = {
     userId,
     filePath,
@@ -187,14 +168,14 @@ function getOrCreateSpeakerAudioFile(sessionId, userId, speakerName) {
     pcmBytes: 0,
     closed: false,
   };
+
   meetingState.speakerAudioFiles.set(userId, speakerAudioFile);
   return speakerAudioFile;
 }
 
 function finalizeSpeakerAudioFile(speakerAudioFile) {
-  if (speakerAudioFile.closed) {
-    return;
-  }
+  if (speakerAudioFile.closed) return;
+
   fs.writeSync(speakerAudioFile.fd, buildWavHeader(speakerAudioFile.pcmBytes), 0, 44, 0);
   fs.closeSync(speakerAudioFile.fd);
   speakerAudioFile.closed = true;
@@ -204,34 +185,27 @@ function finalizeSpeakerAudioFiles() {
   for (const speakerAudioFile of meetingState.speakerAudioFiles.values()) {
     finalizeSpeakerAudioFile(speakerAudioFile);
   }
+
   meetingState.speakerAudioFiles.clear();
 }
 
-function startSpeakerCapture(receiver, client, userId) {
-  if (!meetingState.sessionId) {
-    return;
-  }
-
-  if (client.user && userId === client.user.id) {
-    return;
-  }
-
-  if (meetingState.activeAudioStreams.has(userId)) {
-    return;
-  }
-
-  let speakerName = userId;
+function resolveSpeakerName(client, userId) {
   const guild = client.guilds.cache.get(GUILD_ID);
-  const guildMember = guild ? guild.members.cache.get(userId) : null;
+  const guildMember = guild?.members.cache.get(userId);
+
   if (guildMember) {
-    speakerName = guildMember.displayName || (guildMember.user && guildMember.user.username) || userId;
-  } else {
-    const cachedUser = client.users.cache.get(userId);
-    if (cachedUser && cachedUser.username) {
-      speakerName = cachedUser.username;
-    }
+    return guildMember.displayName || guildMember.user?.username || userId;
   }
 
+  return client.users.cache.get(userId)?.username || userId;
+}
+
+function startSpeakerCapture(receiver, client, userId) {
+  if (!meetingState.sessionId) return;
+  if (client.user && userId === client.user.id) return;
+  if (meetingState.activeAudioStreams.has(userId)) return;
+
+  const speakerName = resolveSpeakerName(client, userId);
   const speakerAudioFile = getOrCreateSpeakerAudioFile(meetingState.sessionId, userId, speakerName);
   const opusStream = receiver.subscribe(userId, {
     end: {
@@ -240,15 +214,14 @@ function startSpeakerCapture(receiver, client, userId) {
     },
   });
   const decoder = new OpusScript(AUDIO_SAMPLE_RATE, AUDIO_CHANNELS, OpusScript.Application.AUDIO);
-  meetingState.activeAudioStreams.set(userId, {
-    opusStream,
-    decoder,
-  });
+
+  meetingState.activeAudioStreams.set(userId, { opusStream, decoder });
 
   opusStream.on("data", (chunk) => {
     try {
       const pcmChunk = decoder.decode(chunk);
       const pcmBuffer = Buffer.isBuffer(pcmChunk) ? pcmChunk : Buffer.from(pcmChunk);
+
       fs.writeSync(
         speakerAudioFile.fd,
         pcmBuffer,
@@ -257,38 +230,29 @@ function startSpeakerCapture(receiver, client, userId) {
         44 + speakerAudioFile.pcmBytes,
       );
       speakerAudioFile.pcmBytes += pcmBuffer.length;
-    } catch (err) {
-      const message = err && err.message ? err.message : "opus_decode_error";
-      logBotError(72, "audio_capture", `session=${meetingState.sessionId}|speaker=${userId}|${message}`);
+    } catch {
+      // Ignore decode failures for this chunk.
     }
   });
 
-  opusStream.on("error", (err) => {
-    const message = err && err.message ? err.message : "speaker_stream_error";
-    logBotError(70, "audio_capture", `session=${meetingState.sessionId}|speaker=${userId}|${message}`);
-  });
+  opusStream.on("error", () => undefined);
 
   let released = false;
   const releaseStream = () => {
-    if (released) {
-      return;
-    }
+    if (released) return;
+
     released = true;
     meetingState.activeAudioStreams.delete(userId);
-    if (typeof decoder.delete === "function") {
-      decoder.delete();
-    }
+    if (typeof decoder.delete === "function") decoder.delete();
   };
+
   opusStream.once("end", releaseStream);
   opusStream.once("close", releaseStream);
 }
 
 function attachAudioCapture(connection, client) {
   const receiver = connection.receiver;
-
-  const speakingListener = (userId) => {
-    startSpeakerCapture(receiver, client, userId);
-  };
+  const speakingListener = (userId) => startSpeakerCapture(receiver, client, userId);
 
   meetingState.speakingListener = speakingListener;
   receiver.speaking.on("start", speakingListener);
@@ -303,10 +267,6 @@ async function startMeeting(client) {
   const guild = await client.guilds.fetch(GUILD_ID);
   const channel = await guild.channels.fetch(VOICE_CHANNEL_ID);
 
-  if (!channel || channel.type !== ChannelType.GuildVoice) {
-    throw new Error("Configured voice channel is missing or not a voice channel");
-  }
-
   meetingState.connection = joinVoiceChannel({
     channelId: channel.id,
     guildId: guild.id,
@@ -319,16 +279,16 @@ async function startMeeting(client) {
 }
 
 async function startRecording(client) {
-  if (meetingState.isRecording) {
-    throw new Error("recording_already_active");
-  }
+  if (meetingState.isRecording) throw new Error("recording_already_active");
 
   if (meetingState.connection.state.status !== VoiceConnectionStatus.Ready) {
-    await entersState(meetingState.connection, VoiceConnectionStatus.Ready, 20_000);
+    await entersState(meetingState.connection, VoiceConnectionStatus.Ready, 5_000);
   }
+
   meetingState.sessionId = createSessionId();
   meetingState.isRecording = true;
   attachAudioCapture(meetingState.connection, client);
+
   return {
     state: "recording_started",
     sessionId: meetingState.sessionId,
@@ -338,22 +298,39 @@ async function startRecording(client) {
 function stopMeeting() {
   const sessionId = meetingState.sessionId;
   const recordingWasActive = meetingState.isRecording;
+
   stopCurrentConnection();
 
   const staleConnection = getVoiceConnection(GUILD_ID);
-  if (staleConnection) {
-    staleConnection.destroy();
-  }
+  if (staleConnection) staleConnection.destroy();
 
-  return {
-    sessionId,
-    recordingWasActive,
-  };
+  return { sessionId, recordingWasActive };
+}
+
+async function handleCommand(client, cmd) {
+  try {
+    if (cmd.action === "record") {
+      await startMeeting(client);
+      const recordingResult = await startRecording(client);
+      writeSession(recordingResult.sessionId);
+      writeStatus("success");
+      return;
+    }
+
+    if (cmd.action === "stop") {
+      stopMeeting();
+      writeStatus("success");
+      return;
+    }
+
+    writeStatus("error");
+  } catch {
+    writeStatus("error");
+  }
 }
 
 async function main() {
-  requireConfig();
-
+  clearStatus();
   await sodium.ready;
 
   const client = new Client({
@@ -363,41 +340,14 @@ async function main() {
   let busy = false;
 
   setInterval(async () => {
-    if (busy) {
-      return;
-    }
+    if (busy) return;
+
     const cmd = readCommand();
-    if (!cmd || !cmd.id || !cmd.action) {
-      return;
-    }
+    if (!cmd?.id || !cmd.action) return;
 
     busy = true;
-    let commandPhase;
     try {
-      if (cmd.action === "record") {
-        commandPhase = "meeting";
-        const meetingResult = await startMeeting(client);
-        commandPhase = "recording";
-        const recordingResult = await startRecording(client);
-        writeStatus(cmd.id, cmd.action, "success", recordingResult.state, undefined, {
-          meeting_state: meetingResult,
-          session_id: recordingResult.sessionId,
-        });
-      } else if (cmd.action === "stop") {
-        const stopContext = stopMeeting();
-        writeStatus(cmd.id, cmd.action, "success", "meeting_stopped", undefined, {
-          session_id: stopContext.sessionId,
-          recording_was_active: stopContext.recordingWasActive,
-        });
-      } else {
-        writeStatus(cmd.id, cmd.action, "error", "error", "unknown_action");
-        logBotError(50, "command", `cmd_id=${cmd.id}|state=error|unknown_action`);
-      }
-    } catch (err) {
-      const message = err && err.message ? err.message : "unknown_bot_error";
-      const state = commandPhase ? `${commandPhase}_error` : "error";
-      writeStatus(cmd.id, cmd.action, "error", state, message);
-      logBotError(51, "command", `cmd_id=${cmd.id}|state=${state}|${message}`);
+      await handleCommand(client, cmd);
     } finally {
       clearCommand();
       busy = false;
@@ -407,8 +357,4 @@ async function main() {
   await client.login(TOKEN);
 }
 
-main().catch((err) => {
-  const message = err && err.message ? err.message : "fatal_startup_error";
-  logBotError(1, "online", `error|${message}`);
-  process.exit(1);
-});
+main().catch(() => process.exit(1));

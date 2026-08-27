@@ -6,7 +6,7 @@ source ~/Workspace/shortcuts/config.sh
 ACTION="meeting_summarize"
 TIMESTAMP=$(date -Iseconds)
 LOG_FILE=~/Workspace/shortcuts/vars/logs/discord.log
-TRANSCRIPTS_DIR=~/Workspace/shortcuts/vars/runtime/transcripts
+TRANSCRIPTS_DIR=~/Workspace/shortcuts/vars/transcripts
 SUMMARIZE_PROMPT_FILE=~/Workspace/shortcuts/discord/lib/meeting_summarize.prompt
 CURSOR_API_BASE=https://api.cursor.com
 CURSOR_MODEL=default

@@ -8,8 +8,9 @@ DISCORD_MEETING_STOP_SCRIPT=~/Workspace/shortcuts/discord/meeting_stop_bot.sh
 DISCORD_MEETING_TRANSCRIBE_SCRIPT=~/Workspace/shortcuts/discord/meeting_transcribe.sh
 DISCORD_MEETING_SUMMARIZE_SCRIPT=~/Workspace/shortcuts/discord/meeting_summarize.sh
 DISCORD_BOT_ENTRYPOINT=~/Workspace/shortcuts/src/services/discord/bot.js
-PID_FILE=~/Workspace/shortcuts/vars/pids/discord-bot.pid
-STATUS_FILE=~/Workspace/shortcuts/vars/runtime/discord-status.json
+PID_DIR=~/Workspace/shortcuts/vars/pids
+ACTIVE_FILE=~/Workspace/shortcuts/vars/active
+SESSION_DIR=~/Workspace/shortcuts/vars/sessions
 BOT_PIDS=$(ps -ax -o pid=,command= | awk -v entrypoint="$DISCORD_BOT_ENTRYPOINT" 'index($0, entrypoint) && $0 !~ /awk/ {print $1}')
 BOT_COUNT=$(printf "%s\n" "$BOT_PIDS" | awk 'NF {c++} END {print c+0}')
 STOP_PID_LIST=$(printf "%s" "$BOT_PIDS" | tr '\n' ',' | sed 's/,$//')
@@ -20,7 +21,8 @@ SUMMARY_STATUS="skipped"
 TRANSCRIPTION_SESSION_ID=""
 
 if [ "$BOT_COUNT" -eq 0 ]; then
-  rm -f "$PID_FILE"
+  rm -f "$PID_DIR"/*
+  rm -f "$ACTIVE_FILE"
   echo "{\"status\":\"SUCCESS\",\"action\":\"$ACTION\",\"message\":\"Bot already offline\"}"
   exit 0
 fi
@@ -57,7 +59,8 @@ if [ "$REMAINING_COUNT" -gt 0 ]; then
 fi
 
 if [ "$REMAINING_COUNT" -eq 0 ]; then
-  rm -f "$PID_FILE"
+  rm -f "$PID_DIR"/*
+  rm -f "$ACTIVE_FILE"
 fi
 
 if [ "$REMAINING_COUNT" -gt 0 ]; then
@@ -66,11 +69,10 @@ if [ "$REMAINING_COUNT" -gt 0 ]; then
   exit 41
 fi
 
-if [ "$MEETING_STOP_RESULT" = "ok" ] && [ -f "$STATUS_FILE" ]; then
-  STOP_STATUS_CONTENT=$(<"$STATUS_FILE")
-  case "$STOP_STATUS_CONTENT" in
-    *"\"action\":\"stop\""*"\"status\":\"success\""*"\"recording_was_active\":true"*)
-      TRANSCRIPTION_SESSION_ID=$(printf "%s" "$STOP_STATUS_CONTENT" | sed -n 's/.*"session_id":"\([^"]*\)".*/\1/p')
+if [ "$MEETING_STOP_RESULT" = "ok" ] && [ -f "$ACTIVE_FILE" ]; then
+  ACTIVE_ID=$(<"$ACTIVE_FILE")
+  if [ -f "$SESSION_DIR/$ACTIVE_ID" ]; then
+    TRANSCRIPTION_SESSION_ID=$(<"$SESSION_DIR/$ACTIVE_ID")
       if "$DISCORD_MEETING_TRANSCRIBE_SCRIPT" "$TRANSCRIPTION_SESSION_ID" >/dev/null 2>&1; then
         TRANSCRIPTION_STATUS="completed"
         echo "$TIMESTAMP|INFO|$ACTION|0|transcription|completed|session=$TRANSCRIPTION_SESSION_ID" >> "$LOG_FILE"
@@ -82,11 +84,9 @@ if [ "$MEETING_STOP_RESULT" = "ok" ] && [ -f "$STATUS_FILE" ]; then
         SUMMARY_STATUS="skipped"
         echo "$TIMESTAMP|INFO|$ACTION|0|transcription|failed|session=$TRANSCRIPTION_SESSION_ID" >> "$LOG_FILE"
       fi
-      ;;
-    *)
+    else
       TRANSCRIPTION_STATUS="skipped_not_recording"
-      ;;
-  esac
+    fi
 fi
 
 if [ "$MEETING_STOP_RESULT" = "failed" ]; then

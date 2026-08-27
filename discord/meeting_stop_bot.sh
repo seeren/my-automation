@@ -2,24 +2,28 @@
 
 set -euo pipefail
 
-RUNTIME_DIR=~/Workspace/shortcuts/vars/runtime
-COMMAND_FILE="$RUNTIME_DIR/discord-command.json"
-STATUS_FILE="$RUNTIME_DIR/discord-status.json"
+VARS_DIR=~/Workspace/shortcuts/vars
+COMMAND_DIR="$VARS_DIR/commands"
+STATUS_DIR="$VARS_DIR/status"
+ACTIVE_FILE="$VARS_DIR/active"
 TIMEOUT_SECONDS=20
 SLEEP_SECONDS=1
-CMD_ID="stop-$(date +%s)-$$"
 
-printf '{"id":"%s","action":"stop"}' "$CMD_ID" > "$COMMAND_FILE"
+[[ -f $ACTIVE_FILE ]] || exit 1
+
+CMD_ID=$(<"$ACTIVE_FILE")
+
+rm -f "$STATUS_DIR/$CMD_ID"
+printf 'stop' > "$COMMAND_DIR/$CMD_ID"
 
 elapsed=0
 while [ "$elapsed" -lt "$TIMEOUT_SECONDS" ]; do
-  if [ -f "$STATUS_FILE" ]; then
-    STATUS_CONTENT=$(<"$STATUS_FILE")
-    case "$STATUS_CONTENT" in
-      *"\"id\":\"$CMD_ID\",\"action\":\"stop\",\"status\":\"success\",\"state\":\"meeting_stopped\""*)
+  if [ -f "$STATUS_DIR/$CMD_ID" ]; then
+    case $(<"$STATUS_DIR/$CMD_ID") in
+      success)
         exit 0
         ;;
-      *"\"id\":\"$CMD_ID\",\"action\":\"stop\",\"status\":\"error\",\"state\":\"error\""*)
+      error)
         exit 1
         ;;
     esac
