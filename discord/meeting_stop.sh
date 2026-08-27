@@ -7,7 +7,7 @@ LOG_FILE=~/Workspace/shortcuts/vars/logs/discord.log
 DISCORD_MEETING_STOP_SCRIPT=~/Workspace/shortcuts/discord/meeting_stop_bot.sh
 DISCORD_MEETING_TRANSCRIBE_SCRIPT=~/Workspace/shortcuts/discord/meeting_transcribe.sh
 DISCORD_MEETING_SUMMARIZE_SCRIPT=~/Workspace/shortcuts/discord/meeting_summarize.sh
-DISCORD_BOT_ENTRYPOINT=~/Workspace/shortcuts/discord/lib/bot.js
+DISCORD_BOT_ENTRYPOINT=~/Workspace/shortcuts/src/services/discord/bot.js
 PID_FILE=~/Workspace/shortcuts/vars/pids/discord-bot.pid
 STATUS_FILE=~/Workspace/shortcuts/vars/runtime/discord-status.json
 BOT_PIDS=$(ps -ax -o pid=,command= | awk -v entrypoint="$DISCORD_BOT_ENTRYPOINT" 'index($0, entrypoint) && $0 !~ /awk/ {print $1}')

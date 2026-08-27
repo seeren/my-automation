@@ -6,7 +6,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../services/discord/record.sh"
 
 meeting_record_controller() {
   if discord_bot_is_running; then
-    return 32
+    return 1
   fi
 
   discord_bot_start || return $?

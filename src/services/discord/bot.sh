@@ -1,15 +1,10 @@
 #!/usr/bin/env bash
 
 discord_bot_is_running() {
-  local service_root
   local bot_entrypoint
-  local bot_pids
 
-  service_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
-  bot_entrypoint="$service_root/discord/lib/bot.js"
-
-  bot_pids=$(ps -ax -o pid=,command= | awk -v entrypoint="$bot_entrypoint" 'index($0, entrypoint) && $0 !~ /awk/ {print $1}')
-  [[ -n $bot_pids ]]
+  bot_entrypoint="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/bot.js"
+  pgrep -f -- "$bot_entrypoint" >/dev/null
 }
 
 discord_bot_start() {
@@ -20,7 +15,7 @@ discord_bot_start() {
   local bot_pid
 
   service_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
-  bot_entrypoint="$service_root/discord/lib/bot.js"
+  bot_entrypoint="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/bot.js"
   pid_file="$service_root/vars/pids/discord-bot.pid"
   log_file="$service_root/vars/logs/discord.log"
 
