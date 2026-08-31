@@ -3,10 +3,10 @@
 ACTION="meeting_transcribe"
 TIMESTAMP=$(date -Iseconds)
 LOG_FILE=~/Workspace/shortcuts/vars/logs/discord.log
-AUDIO_DIR=~/Workspace/shortcuts/vars/runtime/audios
-TRANSCRIPTS_DIR=~/Workspace/shortcuts/vars/runtime/transcripts
+AUDIO_DIR=~/Workspace/shortcuts/vars/audios
+TRANSCRIPTS_DIR=~/Workspace/shortcuts/vars/transcripts
 WHISPER_BIN=~/homebrew/bin/whisper-cli
-WHISPER_MODEL=~/Workspace/shortcuts/vars/runtime/ggml-large-v3.bin
+WHISPER_MODEL=~/Workspace/shortcuts/vars/ggml-large-v3.bin
 WHISPER_LANGUAGE=fr
 SRT_PARSER_AWK=~/Workspace/shortcuts/discord/lib/parse_srt.awk
 
