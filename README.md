@@ -157,13 +157,22 @@ Non-interactive SSH: `zsh -lc '…'` or `launchctl setenv` so secrets are inheri
 
 ## Discord bot setup
 
-- Enable Developer Mode in Discord (`User Settings -> Advanced`).
-- In [Discord Developer Portal](https://discord.com/developers/applications), create an application and a bot.
-- Copy bot token into host secrets as `BOT_DISCORD_TOKEN`.
-- Invite the bot with scope `bot` and permissions `View Channels`, `Connect` (optional `Speak`).
-- Set server and voice channel IDs in `config.sh`:
-  - `BOT_DISCORD_GUILD_ID`
-  - `BOT_DISCORD_VOICE_CHANNEL_ID`
+1. [Create a Discord server](https://support.discord.com/hc/en-us/articles/204849977-How-do-I-create-a-server), then create or select the voice channel to record.
+2. Open the [Discord Developer Portal](https://discord.com/developers/applications), create an application, and open its **Bot** page. Generate or reset the bot token and store it only in the host secrets as `BOT_DISCORD_TOKEN`; never add it to `config.sh` or commit it.
+3. On the application's **Installation** page, enable **Guild Install**. Add the `bot` scope with the **View Channels** and **Connect** permissions (`Speak` is optional), save, then open the generated install link. Choose **Add to server**, select the server, and authorize the bot. The bot must appear in the server member list; installing the application only for the user is not sufficient. See Discord's [bot setup and installation guide](https://docs.discord.com/developers/quick-start/getting-started).
+4. In Discord, enable **User Settings -> Advanced -> Developer Mode**. Right-click the server icon and select **Copy Server ID**, then right-click the voice channel and select **Copy Channel ID**. Discord documents both operations in [Where can I find my User/Server/Message ID?](https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID).
+5. Set the two non-secret IDs in `config.sh`:
+
+```bash
+export BOT_DISCORD_GUILD_ID="<server-id>"
+export BOT_DISCORD_VOICE_CHANNEL_ID="<voice-channel-id>"
+```
+
+Run the recording action from the repository runtime:
+
+```bash
+~/Workspace/shortcuts/bin/shortcuts meeting_record
+```
 
 ---
 
