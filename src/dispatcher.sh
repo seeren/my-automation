@@ -12,6 +12,7 @@ dispatch() (
   local status
   local message
   local response
+  local details
 
   action_name=${action%_controller}
   log_file="$(dirname "${BASH_SOURCE[0]}")/../vars/logs/$action_name.log"
@@ -33,6 +34,12 @@ dispatch() (
     --arg action "$action_name" \
     --arg message "$message" \
     '{status: $status, action: $action, message: $message}')
+
+  if details=$(printf '%s' "$_action_output" | jq -ce \
+    'select(type == "object" and .runner_details == true) | del(.runner_details)' 2>/dev/null); then
+    response=$(jq -cn --argjson response "$response" --argjson details "$details" \
+      '$response + $details')
+  fi
 
   printf '%s|%s|%s|%s|dispatch\n' \
     "$(date -Iseconds)" "$level" "$action_name" "$code" >>"$log_file"
