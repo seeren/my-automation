@@ -46,5 +46,12 @@ discord_stop_bot() {
     discord_bot_alive "$pid" && return 41
   fi
 
-  [[ -n $command_id ]] && rm -f "$vars"/{pids,commands,status,sessions}/"$command_id" "$vars/active"
+  if [[ -n $command_id ]]; then
+    rm -f \
+      "$vars/pids/$command_id" \
+      "$vars/commands/$command_id" \
+      "$vars/status/$command_id" \
+      "$vars/sessions/$command_id" \
+      "$vars/active"
+  fi
 }
