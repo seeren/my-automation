@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 
-discord_bot_pids() {
-  local bot
-  bot="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/bot.js"
-  ps -ax -o pid=,command= |
-    awk -v bot="$bot" 'index($0, bot) && $0 !~ /awk/ {print $1}'
+discord_bot_alive() {
+  local pid=$1
+  [[ -n $pid ]] && kill -0 "$pid" 2>/dev/null
 }
 
 discord_meeting_stop() {
@@ -13,7 +11,7 @@ discord_meeting_stop() {
   rm -f "$vars/status/$command_id"
   printf stop >"$vars/commands/$command_id"
 
-  while ((elapsed < 20)); do
+  while ((elapsed < 8)); do
     if [[ -f $vars/status/$command_id ]]; then
       status=$(<"$vars/status/$command_id")
       [[ $status == success ]] && return 0
@@ -26,50 +24,27 @@ discord_meeting_stop() {
   return 40
 }
 
+# shellcheck disable=SC2034 # session_id is assigned through a caller-owned nameref.
 discord_stop_bot() {
-  local root vars command_id='' pids pid command_failed=0 forced=0
+  local -n session_id_ref=$1
+  local root vars command_id='' pid=''
 
   root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
   vars="$root/vars"
-  DISCORD_STOP_OUTCOME=''
-  DISCORD_STOP_SESSION_ID=''
+  session_id_ref=''
 
   [[ -f $vars/active ]] && command_id=$(<"$vars/active")
   if [[ -n $command_id && -f $vars/sessions/$command_id ]]; then
-    DISCORD_STOP_SESSION_ID=$(<"$vars/sessions/$command_id")
+    session_id_ref=$(<"$vars/sessions/$command_id")
   fi
+  [[ -n $command_id && -f $vars/pids/$command_id ]] && pid=$(<"$vars/pids/$command_id")
 
-  pids=$(discord_bot_pids)
-  if [[ -z $pids ]]; then
-    [[ -n $command_id ]] && rm -f "$vars"/{pids,commands,status,sessions}/"$command_id" "$vars/active"
-    DISCORD_STOP_OUTCOME=offline
-    return 0
-  fi
-
-  [[ -n $command_id ]] && discord_meeting_stop "$command_id" "$vars" || command_failed=1
-
-  for pid in $(discord_bot_pids); do kill "$pid" 2>/dev/null || true; done
-  sleep 2
-
-  pids=$(discord_bot_pids)
-  if [[ -n $pids ]]; then
-    forced=1
-    for pid in $pids; do kill -9 "$pid" 2>/dev/null || true; done
+  if discord_bot_alive "$pid"; then
+    discord_meeting_stop "$command_id" "$vars" || true
+    kill -9 "$pid" 2>/dev/null || true
     sleep 1
-  fi
-
-  if [[ -n $(discord_bot_pids) ]]; then
-    DISCORD_STOP_OUTCOME=persistent_failure
-    return 41
+    discord_bot_alive "$pid" && return 41
   fi
 
   [[ -n $command_id ]] && rm -f "$vars"/{pids,commands,status,sessions}/"$command_id" "$vars/active"
-
-  if ((command_failed)); then
-    DISCORD_STOP_OUTCOME=degraded
-  elif ((forced)); then
-    DISCORD_STOP_OUTCOME=forced
-  else
-    DISCORD_STOP_OUTCOME=normal
-  fi
 }
