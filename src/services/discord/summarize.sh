@@ -9,7 +9,7 @@ discord_summary_run() {
   transcript="$root/vars/transcripts/$session_id.md"
   summary="$root/vars/transcripts/$session_id.summary.md"
 
-  prompt=$(cat "$root/prompts/meeting_summarize.prompt"; \
+  prompt=$(cat "$root/prompts/meeting_summarize.md"; \
     printf '\n\nTranscript :\n\n'; cat "$transcript") || return 67
   rm -f "$summary"
 
