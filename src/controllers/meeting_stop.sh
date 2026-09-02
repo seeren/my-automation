@@ -9,8 +9,10 @@ meeting_stop_controller() {
   local stop_outcome='' session_id='' transcript_file='' track_count=0
   local transcription=skipped summary=skipped code=0
 
-  discord_stop_bot stop_outcome session_id
+  discord_stop_bot
   code=$?
+  stop_outcome=$DISCORD_STOP_OUTCOME
+  session_id=$DISCORD_STOP_SESSION_ID
   if ((code != 0)); then
     jq -cjn --arg outcome "$stop_outcome" \
       '{runner_details:true, outcome:$outcome, transcription:"skipped", summary:"skipped"}'

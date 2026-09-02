@@ -1,148 +1,75 @@
 #!/usr/bin/env bash
 
-discord_stop_vars_dir() {
-  if [[ -n ${DISCORD_STOP_VARS_DIR:-} ]]; then
-    printf '%s\n' "$DISCORD_STOP_VARS_DIR"
-    return
-  fi
-
-  local service_root
-  service_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
-  printf '%s/vars\n' "$service_root"
+discord_bot_pids() {
+  local bot
+  bot="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/bot.js"
+  ps -ax -o pid=,command= |
+    awk -v bot="$bot" 'index($0, bot) && $0 !~ /awk/ {print $1}'
 }
 
-discord_meeting_stop_command() {
-  local command_id=$1
-  local vars_dir status_file status elapsed timeout interval step
+discord_meeting_stop() {
+  local command_id=$1 vars=$2 status elapsed=0
 
-  vars_dir=$(discord_stop_vars_dir)
-  status_file="$vars_dir/status/$command_id"
-  timeout=${DISCORD_STOP_COMMAND_TIMEOUT:-20}
-  interval=${DISCORD_STOP_COMMAND_INTERVAL:-1}
-  step=$interval
-  ((step > 0)) || step=1
+  rm -f "$vars/status/$command_id"
+  printf stop >"$vars/commands/$command_id"
 
-  rm -f "$status_file"
-  printf 'stop' >"$vars_dir/commands/$command_id"
-
-  elapsed=0
-  while ((elapsed < timeout)); do
-    if [[ -f $status_file ]]; then
-      status=$(<"$status_file")
+  while ((elapsed < 20)); do
+    if [[ -f $vars/status/$command_id ]]; then
+      status=$(<"$vars/status/$command_id")
       [[ $status == success ]] && return 0
       [[ $status == error ]] && return 40
     fi
-
-    sleep "$interval"
-    elapsed=$((elapsed + step))
+    sleep 1
+    elapsed=$((elapsed + 1))
   done
 
   return 40
 }
 
-discord_bot_process_pids() {
-  local bot_entrypoint
-  bot_entrypoint="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/bot.js"
-
-  ps -ax -o pid=,command= |
-    awk -v entrypoint="$bot_entrypoint" 'index($0, entrypoint) && $0 !~ /awk/ {print $1}' |
-    paste -sd ' ' -
-}
-
-discord_bot_signal() {
-  local signal=$1
-  local pid=$2
-  kill -s "$signal" "$pid" 2>/dev/null || true
-}
-
-discord_stop_cleanup() {
-  local command_id=$1
-  local vars_dir
-  vars_dir=$(discord_stop_vars_dir)
-
-  rm -f \
-    "$vars_dir/pids/$command_id" \
-    "$vars_dir/commands/$command_id" \
-    "$vars_dir/status/$command_id" \
-    "$vars_dir/sessions/$command_id" \
-    "$vars_dir/active"
-}
-
-discord_stop_signal_pids() {
-  local signal=$1
-  local pids=$2
-  local pid
-
-  for pid in $pids; do
-    discord_bot_signal "$signal" "$pid"
-  done
-}
-
-discord_stop_result_set() {
-  local outcome=$1
-  local session_id=$2
-  local outcome_var=${3-}
-  local session_var=${4-}
-
-  if [[ -n $outcome_var ]]; then
-    printf -v "$outcome_var" '%s' "$outcome"
-    [[ -n $session_var ]] && printf -v "$session_var" '%s' "$session_id"
-  else
-    printf '%s\n' "$outcome"
-  fi
-}
-
 discord_stop_bot() {
-  local vars_dir active_file command_id initial_pids current_pids remaining_pids
-  local outcome_var=${1-} session_var=${2-} session_id=''
-  local command_failed=0 forced=0
+  local root vars command_id='' pids pid command_failed=0 forced=0
 
-  vars_dir=$(discord_stop_vars_dir)
-  active_file="$vars_dir/active"
-  command_id=''
-  [[ -f $active_file ]] && command_id=$(<"$active_file")
-  if [[ -n $command_id && -f $vars_dir/sessions/$command_id ]]; then
-    session_id=$(<"$vars_dir/sessions/$command_id")
+  root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
+  vars="$root/vars"
+  DISCORD_STOP_OUTCOME=''
+  DISCORD_STOP_SESSION_ID=''
+
+  [[ -f $vars/active ]] && command_id=$(<"$vars/active")
+  if [[ -n $command_id && -f $vars/sessions/$command_id ]]; then
+    DISCORD_STOP_SESSION_ID=$(<"$vars/sessions/$command_id")
   fi
 
-  initial_pids=$(discord_bot_process_pids)
-  if [[ -z $initial_pids ]]; then
-    [[ -n $command_id ]] && discord_stop_cleanup "$command_id"
-    discord_stop_result_set offline '' "$outcome_var" "$session_var"
+  pids=$(discord_bot_pids)
+  if [[ -z $pids ]]; then
+    [[ -n $command_id ]] && rm -f "$vars"/{pids,commands,status,sessions}/"$command_id" "$vars/active"
+    DISCORD_STOP_OUTCOME=offline
     return 0
   fi
 
-  if [[ -z $command_id ]] || ! discord_meeting_stop_command "$command_id"; then
-    command_failed=1
-  fi
+  [[ -n $command_id ]] && discord_meeting_stop "$command_id" "$vars" || command_failed=1
 
-  current_pids=$(discord_bot_process_pids)
-  if [[ -n $current_pids ]]; then
-    discord_stop_signal_pids TERM "$current_pids"
-  fi
+  for pid in $(discord_bot_pids); do kill "$pid" 2>/dev/null || true; done
+  sleep 2
 
-  sleep "${DISCORD_STOP_TERM_WAIT:-2}"
-  remaining_pids=$(discord_bot_process_pids)
-
-  if [[ -n $remaining_pids ]]; then
+  pids=$(discord_bot_pids)
+  if [[ -n $pids ]]; then
     forced=1
-    discord_stop_signal_pids KILL "$remaining_pids"
-    sleep "${DISCORD_STOP_KILL_WAIT:-1}"
-    remaining_pids=$(discord_bot_process_pids)
+    for pid in $pids; do kill -9 "$pid" 2>/dev/null || true; done
+    sleep 1
   fi
 
-  if [[ -n $remaining_pids ]]; then
-    discord_stop_result_set persistent_failure "$session_id" "$outcome_var" "$session_var"
+  if [[ -n $(discord_bot_pids) ]]; then
+    DISCORD_STOP_OUTCOME=persistent_failure
     return 41
   fi
 
-  [[ -n $command_id ]] && discord_stop_cleanup "$command_id"
+  [[ -n $command_id ]] && rm -f "$vars"/{pids,commands,status,sessions}/"$command_id" "$vars/active"
 
   if ((command_failed)); then
-    discord_stop_result_set degraded "$session_id" "$outcome_var" "$session_var"
+    DISCORD_STOP_OUTCOME=degraded
   elif ((forced)); then
-    discord_stop_result_set forced "$session_id" "$outcome_var" "$session_var"
+    DISCORD_STOP_OUTCOME=forced
   else
-    discord_stop_result_set normal "$session_id" "$outcome_var" "$session_var"
+    DISCORD_STOP_OUTCOME=normal
   fi
 }
