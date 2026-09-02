@@ -78,19 +78,37 @@ discord_stop_signal_pids() {
   done
 }
 
+discord_stop_result_set() {
+  local outcome=$1
+  local session_id=$2
+  local outcome_var=${3-}
+  local session_var=${4-}
+
+  if [[ -n $outcome_var ]]; then
+    printf -v "$outcome_var" '%s' "$outcome"
+    [[ -n $session_var ]] && printf -v "$session_var" '%s' "$session_id"
+  else
+    printf '%s\n' "$outcome"
+  fi
+}
+
 discord_stop_bot() {
   local vars_dir active_file command_id initial_pids current_pids remaining_pids
+  local outcome_var=${1-} session_var=${2-} session_id=''
   local command_failed=0 forced=0
 
   vars_dir=$(discord_stop_vars_dir)
   active_file="$vars_dir/active"
   command_id=''
   [[ -f $active_file ]] && command_id=$(<"$active_file")
+  if [[ -n $command_id && -f $vars_dir/sessions/$command_id ]]; then
+    session_id=$(<"$vars_dir/sessions/$command_id")
+  fi
 
   initial_pids=$(discord_bot_process_pids)
   if [[ -z $initial_pids ]]; then
     [[ -n $command_id ]] && discord_stop_cleanup "$command_id"
-    printf 'offline\n'
+    discord_stop_result_set offline '' "$outcome_var" "$session_var"
     return 0
   fi
 
@@ -114,17 +132,17 @@ discord_stop_bot() {
   fi
 
   if [[ -n $remaining_pids ]]; then
-    printf 'persistent_failure\n'
+    discord_stop_result_set persistent_failure "$session_id" "$outcome_var" "$session_var"
     return 41
   fi
 
   [[ -n $command_id ]] && discord_stop_cleanup "$command_id"
 
   if ((command_failed)); then
-    printf 'degraded\n'
+    discord_stop_result_set degraded "$session_id" "$outcome_var" "$session_var"
   elif ((forced)); then
-    printf 'forced\n'
+    discord_stop_result_set forced "$session_id" "$outcome_var" "$session_var"
   else
-    printf 'normal\n'
+    discord_stop_result_set normal "$session_id" "$outcome_var" "$session_var"
   fi
 }
